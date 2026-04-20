@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContaComigo v0.1.0 - Preview</title>
+  <meta name="theme-color" content="#1f2937">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.png">
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">RPG narrativo multiplayer com IA</p>
+        <h1>ContaComigo</h1>
+      </div>
+      <div class="topbar-actions">
+        <div id="user-chip" class="user-chip hidden"></div>
+        <button id="btn-admin" class="btn secondary hidden">Admin</button>
+        <button id="btn-logout" class="btn ghost hidden">Sair</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="screen-landing" class="screen active">
+        <div class="hero card">
+          <div>
+            <p class="eyebrow">Até 4 jogadores por sessão</p>
+            <h2>Histórias cooperativas em capítulos, decisões simultâneas e impacto gerado por IA.</h2>
+            <p>Entre com Google, escolha uma campanha, monte seu personagem e avance quando todos decidirem.</p>
+            <div class="actions">
+              <button id="btn-start-login" class="btn">Entrar com Google</button>
+              <button id="btn-open-login" class="btn secondary">Abrir login</button>
+            </div>
+          </div>
+          <div class="stats">
+            <article>
+              <strong>Mesmo padrão da base</strong>
+              <span>SPA estática + Vercel Functions + Supabase + Gemini</span>
+            </article>
+            <article>
+              <strong>Fluxo do jogo</strong>
+              <span>Lobby, personagem, capítulo, decisão, espera e resumo</span>
+            </article>
+            <article>
+              <strong>Painel admin</strong>
+              <span>CRUD de histórias, capítulos, decisões, prompts, regras e sessões</span>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-login" class="screen">
+        <div class="card centered">
+          <p class="eyebrow">Autenticação Supabase</p>
+          <h2>Entrar</h2>
+          <p>O login principal é com Google, mantendo a mesma estratégia do projeto base.</p>
+          <div class="actions">
+            <button id="btn-google-login" class="btn">Continuar com Google</button>
+            <button data-nav="screen-landing" class="btn ghost">Voltar</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-dashboard" class="screen">
+        <div class="layout-grid">
+          <aside class="sidebar card">
+            <h3>Dashboard</h3>
+            <button id="btn-refresh-dashboard" class="btn secondary full">Atualizar</button>
+            <button id="btn-open-admin" class="btn ghost full hidden">Painel admin</button>
+            <div class="status-box">
+              <span>Build</span>
+              <strong data-app-version-label>ContaComigo v0.1.0 - Preview</strong>
+              <small data-app-version-meta></small>
+            </div>
+          </aside>
+
+          <div class="content-stack">
+            <div class="card">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Histórias</p>
+                  <h2>Campanhas disponíveis</h2>
+                </div>
+              </div>
+              <div id="stories-list" class="grid-list"></div>
+            </div>
+
+            <div class="card">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Sessões</p>
+                  <h2>Minhas mesas</h2>
+                </div>
+              </div>
+              <div id="sessions-list" class="stack-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-lobby" class="screen">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Lobby / Sessão</p>
+              <h2 id="lobby-title">Sessão</h2>
+            </div>
+            <div class="actions">
+              <button id="btn-refresh-session" class="btn secondary">Atualizar</button>
+              <button id="btn-open-character" class="btn">Criar personagem</button>
+              <button data-nav="screen-dashboard" class="btn ghost">Voltar</button>
+            </div>
+          </div>
+          <div class="two-col">
+            <div>
+              <h3>Jogadores</h3>
+              <div id="session-players" class="stack-list"></div>
+            </div>
+            <div>
+              <h3>Estado</h3>
+              <div id="session-status-box" class="stack-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-character" class="screen">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Personagem</p>
+              <h2>Ficha do jogador</h2>
+            </div>
+            <button data-nav="screen-lobby" class="btn ghost">Voltar</button>
+          </div>
+          <form id="character-form" class="form-grid">
+            <input name="name" placeholder="Nome do personagem" required>
+            <input name="class_name" placeholder="Classe / arquétipo" required>
+            <input name="origin" placeholder="Origem" required>
+            <textarea name="backstory" placeholder="História resumida" rows="4"></textarea>
+            <input type="number" name="strength" min="0" max="10" placeholder="Força">
+            <input type="number" name="intelligence" min="0" max="10" placeholder="Inteligência">
+            <input type="number" name="charisma" min="0" max="10" placeholder="Carisma">
+            <input type="number" name="agility" min="0" max="10" placeholder="Agilidade">
+            <button class="btn" type="submit">Salvar personagem</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="screen-chapter" class="screen">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Capítulo atual</p>
+              <h2 id="chapter-title">Capítulo</h2>
+            </div>
+            <div class="actions">
+              <button id="btn-refresh-chapter" class="btn secondary">Atualizar</button>
+              <button data-nav="screen-lobby" class="btn ghost">Lobby</button>
+            </div>
+          </div>
+          <article id="chapter-narration" class="narration"></article>
+          <div id="chapter-impacts" class="impact-grid"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Decisão obrigatória</p>
+              <h2 id="decision-title">Escolha seu caminho</h2>
+            </div>
+          </div>
+          <form id="decision-form">
+            <div id="decision-options" class="stack-list"></div>
+            <textarea id="decision-note" placeholder="Observação opcional para contextualizar sua decisão" rows="3"></textarea>
+            <div class="actions">
+              <button class="btn" type="submit">Enviar decisão</button>
+              <button id="btn-check-decisions" class="btn secondary" type="button">Verificar rodada</button>
+              <button id="btn-consolidate-round" class="btn ghost" type="button">Consolidar rodada</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="screen-wait" class="screen">
+        <div class="card centered">
+          <p class="eyebrow">Aguardando outros jogadores</p>
+          <h2>Nem todos decidiram ainda</h2>
+          <p id="wait-status-text">Atualize a sessão para acompanhar a rodada.</p>
+          <div class="actions">
+            <button id="btn-refresh-wait" class="btn secondary">Atualizar</button>
+            <button data-nav="screen-lobby" class="btn ghost">Lobby</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-summary" class="screen">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Resumo do capítulo</p>
+              <h2>Resultado da rodada</h2>
+            </div>
+            <div class="actions">
+              <button id="btn-open-next-chapter" class="btn">Abrir próximo capítulo</button>
+              <button data-nav="screen-lobby" class="btn ghost">Lobby</button>
+            </div>
+          </div>
+          <article id="summary-content" class="narration"></article>
+          <div id="summary-impacts" class="impact-grid"></div>
+        </div>
+      </section>
+
+      <section id="screen-admin" class="screen">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Painel admin</p>
+              <h2>Conteúdo, regras, prompts e sessões</h2>
+            </div>
+            <button data-nav="screen-dashboard" class="btn ghost">Voltar</button>
+          </div>
+          <div class="admin-tabs">
+            <button class="tab active" data-admin-tab="stories">Histórias</button>
+            <button class="tab" data-admin-tab="chapters">Capítulos</button>
+            <button class="tab" data-admin-tab="decisions">Decisões</button>
+            <button class="tab" data-admin-tab="prompts">Prompts</button>
+            <button class="tab" data-admin-tab="rules">Regras</button>
+            <button class="tab" data-admin-tab="sessions">Sessões</button>
+          </div>
+
+          <div id="admin-tab-stories" class="admin-panel active">
+            <form id="admin-story-form" class="form-grid">
+              <input name="title" placeholder="Título da história" required>
+              <input name="slug" placeholder="Slug" required>
+              <textarea name="summary" placeholder="Resumo" rows="3"></textarea>
+              <textarea name="cover_text" placeholder="Texto de capa" rows="3"></textarea>
+              <label><input type="checkbox" name="is_published" checked> Publicada</label>
+              <button class="btn" type="submit">Salvar história</button>
+            </form>
+            <div id="admin-stories-list" class="stack-list"></div>
+          </div>
+
+          <div id="admin-tab-chapters" class="admin-panel">
+            <form id="admin-chapter-form" class="form-grid">
+              <input name="story_id" placeholder="Story ID" required>
+              <input name="chapter_order" type="number" min="1" placeholder="Ordem" required>
+              <input name="title" placeholder="Título do capítulo" required>
+              <textarea name="opening_text" placeholder="Texto inicial" rows="4"></textarea>
+              <textarea name="chapter_goal" placeholder="Objetivo do capítulo" rows="3"></textarea>
+              <button class="btn" type="submit">Salvar capítulo</button>
+            </form>
+            <div id="admin-chapters-list" class="stack-list"></div>
+          </div>
+
+          <div id="admin-tab-decisions" class="admin-panel">
+            <form id="admin-decision-form" class="form-grid">
+              <input name="chapter_id" placeholder="Chapter ID" required>
+              <input name="title" placeholder="Título da decisão" required>
+              <textarea name="decision_prompt" placeholder="Prompt da decisão" rows="3"></textarea>
+              <select name="visibility_mode">
+                <option value="visible">Visível</option>
+                <option value="hidden">Oculta</option>
+                <option value="delayed_reveal">Revelada depois</option>
+              </select>
+              <button class="btn" type="submit">Salvar ponto de decisão</button>
+            </form>
+            <div id="admin-decisions-list" class="stack-list"></div>
+          </div>
+
+          <div id="admin-tab-prompts" class="admin-panel">
+            <form id="admin-prompt-form" class="form-grid">
+              <input name="prompt_name" placeholder="Identificador" required>
+              <input name="label" placeholder="Rótulo" required>
+              <textarea name="prompt_content" placeholder="Prompt" rows="6"></textarea>
+              <button class="btn" type="submit">Salvar prompt</button>
+            </form>
+            <div id="admin-prompts-list" class="stack-list"></div>
+          </div>
+
+          <div id="admin-tab-rules" class="admin-panel">
+            <form id="admin-rule-form" class="form-grid">
+              <input name="story_id" placeholder="Story ID">
+              <input name="rule_name" placeholder="Nome da regra" required>
+              <textarea name="rule_content" placeholder="Conteúdo da regra" rows="4"></textarea>
+              <button class="btn" type="submit">Salvar regra</button>
+            </form>
+            <div id="admin-rules-list" class="stack-list"></div>
+          </div>
+
+          <div id="admin-tab-sessions" class="admin-panel">
+            <div id="admin-sessions-list" class="stack-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <div id="loading" class="loading hidden">Carregando...</div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

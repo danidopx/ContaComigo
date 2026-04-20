@@ -1,0 +1,9 @@
+{
+  "name": "contacomigo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "vercel dev",
+    "ci:validate": "node scripts/ci-validate.mjs"
+  }
+}
