@@ -36,6 +36,13 @@ h1, h2, h3, p { margin-top: 0; }
 .stats, .stack-list, .grid-list, .impact-grid, .content-stack { display: grid; gap: 14px; }
 .stats article, .stack-item, .story-card, .impact-card, .status-box { border: 1px solid var(--line); border-radius: 16px; padding: 16px; background: var(--panel); }
 .grid-list { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.story-carousel {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 320px);
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
 .story-card h3, .stack-item h4 { margin-bottom: 8px; }
 .layout-grid { display: grid; grid-template-columns: 280px 1fr; gap: 20px; }
 .sidebar { position: sticky; top: 16px; }
@@ -117,6 +124,10 @@ textarea { resize: vertical; }
 }
 .login-status.info {
   color: var(--accent);
+}
+.compact-status {
+  max-width: 320px;
+  margin-top: 20px;
 }
 
 @media (max-width: 900px) {

@@ -25,7 +25,12 @@ export default async function handler(req, res) {
       title: `${story.title} - Mesa`,
       host_user_id: user.id,
       current_chapter_id: firstChapter?.id || null,
-      status: 'lobby'
+      status: 'lobby',
+      max_players: Number(story.max_players || 4),
+      metadata: {
+        system_base: story.system_base || 'generic',
+        character_compatibility: story.character_compatibility || 'generic-flex'
+      }
     }]);
 
     const [player] = await dbInsert('session_players', [{

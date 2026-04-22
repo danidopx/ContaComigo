@@ -4,6 +4,7 @@ const scopes = {
   stories: { table: 'stories', select: '*' },
   chapters: { table: 'story_chapters', select: '*' },
   decisions: { table: 'story_decision_points', select: '*' },
+  decisionOptions: { table: 'story_decision_options', select: '*' },
   rules: { table: 'story_rules', select: '*' },
   sessions: { table: 'game_sessions', select: '*' }
 };
@@ -50,12 +51,44 @@ function normalizePayload(entity, data = {}) {
   const payload = { ...data };
   if (entity === 'stories') {
     payload.is_published = payload.is_published === true || payload.is_published === 'on' || payload.is_published === 'true';
+    payload.min_players = Number(payload.min_players || 1);
+    payload.max_players = Number(payload.max_players || 4);
+    payload.tags = normalizeJsonArray(payload.tags);
   }
   if (entity === 'story_chapters') {
     payload.chapter_order = Number(payload.chapter_order || 1);
+  }
+  if (entity === 'story_decision_points') {
+    payload.sort_order = Number(payload.sort_order || 1);
+    payload.character_impact = normalizeJsonObject(payload.character_impact);
+  }
+  if (entity === 'story_decision_options') {
+    payload.sort_order = Number(payload.sort_order || 1);
   }
   if (entity === 'story_prompt_configs') {
     payload.is_active = true;
   }
   return payload;
+}
+
+function normalizeJsonArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return String(value).split(',').map(item => item.trim()).filter(Boolean);
+  }
+}
+
+function normalizeJsonObject(value) {
+  if (!value) return {};
+  if (typeof value === 'object' && !Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return { default: String(value) };
+  }
 }

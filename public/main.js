@@ -2,7 +2,7 @@ import { appState, initPublicConfig } from './config.js';
 import { initAuth, signInWithGoogle, signOut } from './auth.js';
 import { loadStories, loadMySessions, createSession, joinSession, createCharacter, submitDecision, fetchSessionStatus, consolidateRound, generateNextChapter, fetchCurrentState, adminCrud, loadPromptConfigs, sincronizarVersaoAppNaTela } from './api.js';
 import { bindSimpleNavigation, formToJson, setLoading, showScreen, toast } from './ui.js';
-import { renderAdminList, renderChapter, renderLobby, renderSessions, renderStories, renderSummary } from './cv-builder.js';
+import { renderAdminList, renderChapter, renderCharacterLibrary, renderLobby, renderSessions, renderStories, renderSummary } from './cv-builder.js';
 
 let lastConsolidation = null;
 let appReady = false;
@@ -58,6 +58,11 @@ async function openSession(sessionId) {
   try {
     const state = await fetchCurrentState(sessionId);
     renderLobby(state);
+    renderCharacterLibrary(state, async characterId => {
+      await createCharacter(appState.currentSession.id, { existingCharacterId: characterId });
+      toast('Ficha vinculada à sessão.');
+      await openSession(appState.currentSession.id);
+    });
 
     if (state.session?.status === 'waiting') {
       const status = await fetchSessionStatus(sessionId);
@@ -98,10 +103,11 @@ async function loadAdmin() {
   if (!appState.isAdmin) return;
   setLoading(true, 'Carregando admin...');
   try {
-    const [storiesPayload, chaptersPayload, decisionsPayload, rulesPayload, sessionsPayload, promptsPayload] = await Promise.all([
+    const [storiesPayload, chaptersPayload, decisionsPayload, decisionOptionsPayload, rulesPayload, sessionsPayload, promptsPayload] = await Promise.all([
       adminCrud('stories', 'GET', { scope: 'stories' }),
       adminCrud('story_chapters', 'GET', { scope: 'chapters' }),
       adminCrud('story_decision_points', 'GET', { scope: 'decisions' }),
+      adminCrud('story_decision_options', 'GET', { scope: 'decisionOptions' }),
       adminCrud('story_rules', 'GET', { scope: 'rules' }),
       adminCrud('game_sessions', 'GET', { scope: 'sessions' }),
       loadPromptConfigs()
@@ -110,6 +116,7 @@ async function loadAdmin() {
     renderAdminList(document.getElementById('admin-stories-list'), storiesPayload.items || []);
     renderAdminList(document.getElementById('admin-chapters-list'), chaptersPayload.items || [], 'title', 'chapter_goal');
     renderAdminList(document.getElementById('admin-decisions-list'), decisionsPayload.items || [], 'title', 'visibility_mode');
+    renderAdminList(document.getElementById('admin-decision-options-list'), decisionOptionsPayload.items || [], 'option_label', 'option_description');
     renderAdminList(document.getElementById('admin-rules-list'), rulesPayload.items || [], 'rule_name', 'rule_content');
     renderAdminList(document.getElementById('admin-sessions-list'), sessionsPayload.items || [], 'title', 'status');
     renderAdminList(document.getElementById('admin-prompts-list'), promptsPayload, 'label', 'prompt_name');
@@ -175,6 +182,14 @@ function bindForms() {
     event.preventDefault();
     await adminCrud('story_decision_points', 'POST', { data: formToJson(event.currentTarget) });
     toast('Ponto de decisão salvo.');
+    await loadAdmin();
+    event.currentTarget.reset();
+  });
+
+  document.getElementById('admin-decision-option-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    await adminCrud('story_decision_options', 'POST', { data: formToJson(event.currentTarget) });
+    toast('Opção de decisão salva.');
     await loadAdmin();
     event.currentTarget.reset();
   });

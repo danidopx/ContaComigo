@@ -115,13 +115,15 @@ export async function carregarVersaoAtualApp() {
 }
 
 export async function sincronizarVersaoAppNaTela() {
-  const label = document.querySelector('[data-app-version-label]');
-  const meta = document.querySelector('[data-app-version-meta]');
-  if (!label) return;
+  const labels = [...document.querySelectorAll('[data-app-version-label]')];
+  const metas = [...document.querySelectorAll('[data-app-version-meta]')];
+  if (labels.length === 0) return;
 
   const version = await carregarVersaoAtualApp().catch(() => null);
   if (!version) return;
 
-  label.textContent = `ContaComigo v${version.current_version}${version.environment_name === 'preview' ? ' - Preview' : ''}`;
-  if (meta) meta.textContent = `${version.environment_name} | ${new Date(version.release_date).toLocaleString('pt-BR')}`;
+  const labelText = `ContaComigo v${version.current_version}${version.environment_name === 'preview' ? ' - Preview' : ''}`;
+  const metaText = `${version.environment_name} | ${new Date(version.release_date).toLocaleString('pt-BR')}`;
+  labels.forEach(label => { label.textContent = labelText; });
+  metas.forEach(meta => { meta.textContent = metaText; });
 }

@@ -1,19 +1,43 @@
 import { escapeHtml, formatDate } from './ui.js';
 
 export function renderStories(container, stories, onCreate) {
+  container.classList.add('story-carousel');
   container.innerHTML = stories.length === 0
     ? '<div class="stack-item">Nenhuma história publicada ainda.</div>'
     : stories.map(story => `
       <article class="story-card">
-        <p class="eyebrow">${escapeHtml(story.slug || 'historia')}</p>
+        <p class="eyebrow">${escapeHtml(story.system_base || story.slug || 'historia')}</p>
         <h3>${escapeHtml(story.title)}</h3>
         <p>${escapeHtml(story.summary || 'Sem resumo cadastrado.')}</p>
-        <button class="btn" data-story-create="${story.id}">Criar sessão</button>
+        <p>Jogadores: ${escapeHtml(story.min_players || 1)}-${escapeHtml(story.max_players || 4)}</p>
+        <p>Ficha: ${escapeHtml(story.character_compatibility || 'generic-flex')}</p>
+        <button class="btn" data-story-create="${story.id}">Entrar na história</button>
       </article>
     `).join('');
 
   container.querySelectorAll('[data-story-create]').forEach(button => {
     button.addEventListener('click', () => onCreate(button.dataset.storyCreate));
+  });
+}
+
+export function renderCharacterLibrary(state, onSelect) {
+  const container = document.getElementById('character-library');
+  if (!container) return;
+
+  const items = state.compatibleCharacters || [];
+  container.innerHTML = items.length === 0
+    ? '<div class="stack-item">Nenhuma ficha compatível salva. Crie uma nova abaixo.</div>'
+    : items.map(item => `
+      <article class="stack-item">
+        <h4>${escapeHtml(item.name)}</h4>
+        <p>${escapeHtml(item.class_name || item.sheet_template || 'Ficha flexível')}</p>
+        <p>Sistema: ${escapeHtml(item.system_name || 'generic')}</p>
+        <button class="btn secondary" data-character-select="${item.id}">Usar esta ficha</button>
+      </article>
+    `).join('');
+
+  container.querySelectorAll('[data-character-select]').forEach(button => {
+    button.addEventListener('click', () => onSelect(button.dataset.characterSelect));
   });
 }
 

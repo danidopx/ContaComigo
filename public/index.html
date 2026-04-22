@@ -35,6 +35,11 @@
               <button id="btn-start-login" class="btn">Entrar com Google</button>
               <button id="btn-open-login" class="btn ghost">Ver acesso</button>
             </div>
+            <div class="status-box compact-status">
+              <span>Versão</span>
+              <strong data-app-version-label>ContaComigo v0.1.0</strong>
+              <small data-app-version-meta></small>
+            </div>
           </div>
           <div class="stats hero-stats">
             <article class="metric-card">
@@ -138,15 +143,20 @@
             </div>
             <button data-nav="screen-lobby" class="btn ghost">Voltar</button>
           </div>
+          <div id="character-library" class="stack-list"></div>
           <form id="character-form" class="form-grid">
             <input name="name" placeholder="Nome do personagem" required>
+            <input name="system_name" placeholder="Sistema associado" value="generic">
+            <input name="sheet_template" placeholder="Compatibilidade de ficha" value="generic-flex">
             <input name="class_name" placeholder="Classe / arquétipo" required>
             <input name="origin" placeholder="Origem" required>
+            <textarea name="description" placeholder="Descrição curta" rows="2"></textarea>
             <textarea name="backstory" placeholder="História resumida" rows="4"></textarea>
             <input type="number" name="strength" min="0" max="10" placeholder="Força">
             <input type="number" name="intelligence" min="0" max="10" placeholder="Inteligência">
             <input type="number" name="charisma" min="0" max="10" placeholder="Carisma">
             <input type="number" name="agility" min="0" max="10" placeholder="Agilidade">
+            <textarea name="custom_fields" placeholder='Campos customizáveis em JSON, ex: {"mana":3,"natureza":"bruxo"}' rows="3"></textarea>
             <button class="btn" type="submit">Salvar personagem</button>
           </form>
         </div>
@@ -239,7 +249,21 @@
               <input name="title" placeholder="Título da história" required>
               <input name="slug" placeholder="Slug" required>
               <textarea name="summary" placeholder="Resumo" rows="3"></textarea>
+              <textarea name="lore_description" placeholder="Lore / descrição" rows="3"></textarea>
+              <input name="cover_url" placeholder="Capa opcional (URL)">
               <textarea name="cover_text" placeholder="Texto de capa" rows="3"></textarea>
+              <input name="status" placeholder="Status" value="published">
+              <input name="system_base" placeholder="Sistema base" value="generic">
+              <div class="two-col">
+                <input name="min_players" type="number" min="1" max="10" placeholder="Mín. jogadores" value="1">
+                <input name="max_players" type="number" min="1" max="10" placeholder="Máx. jogadores" value="4">
+              </div>
+              <input name="character_compatibility" placeholder="Compatibilidade de ficha" value="generic-flex">
+              <input name="tags" placeholder="Tags separadas por vírgula">
+              <textarea name="master_prompt" placeholder="Prompt mestre" rows="4"></textarea>
+              <textarea name="world_context" placeholder="Contexto do mundo" rows="3"></textarea>
+              <textarea name="narrative_rules" placeholder="Regras narrativas" rows="3"></textarea>
+              <input name="tone_style" placeholder="Estilo / tom">
               <label><input type="checkbox" name="is_published" checked> Publicada</label>
               <button class="btn" type="submit">Salvar história</button>
             </form>
@@ -250,6 +274,7 @@
             <form id="admin-chapter-form" class="form-grid">
               <input name="story_id" placeholder="Story ID" required>
               <input name="chapter_order" type="number" min="1" placeholder="Ordem" required>
+              <input name="arc_title" placeholder="Capítulo / arco">
               <input name="title" placeholder="Título do capítulo" required>
               <textarea name="opening_text" placeholder="Texto inicial" rows="4"></textarea>
               <textarea name="chapter_goal" placeholder="Objetivo do capítulo" rows="3"></textarea>
@@ -261,8 +286,16 @@
           <div id="admin-tab-decisions" class="admin-panel">
             <form id="admin-decision-form" class="form-grid">
               <input name="chapter_id" placeholder="Chapter ID" required>
+              <input name="marker_key" placeholder="ID do marcador">
+              <input name="chapter_arc" placeholder="Capítulo / arco">
               <input name="title" placeholder="Título da decisão" required>
+              <textarea name="description" placeholder="Descrição" rows="2"></textarea>
               <textarea name="decision_prompt" placeholder="Prompt da decisão" rows="3"></textarea>
+              <input name="trigger_condition" placeholder="Gatilho">
+              <textarea name="narrative_impact" placeholder="Impacto narrativo" rows="2"></textarea>
+              <textarea name="character_impact" placeholder='Impacto por personagem em JSON' rows="2"></textarea>
+              <input name="condition_rule" placeholder="Condição">
+              <input name="sort_order" type="number" min="1" placeholder="Ordem" value="1">
               <select name="visibility_mode">
                 <option value="visible">Visível</option>
                 <option value="hidden">Oculta</option>
@@ -270,7 +303,17 @@
               </select>
               <button class="btn" type="submit">Salvar ponto de decisão</button>
             </form>
+            <form id="admin-decision-option-form" class="form-grid">
+              <input name="decision_point_id" placeholder="Decision Point ID" required>
+              <input name="option_key" placeholder="Chave da opção" required>
+              <input name="option_label" placeholder="Título da opção" required>
+              <textarea name="option_description" placeholder="Descrição da opção" rows="2"></textarea>
+              <textarea name="consequence_hint" placeholder="Impacto narrativo sugerido" rows="2"></textarea>
+              <input name="sort_order" type="number" min="1" placeholder="Ordem" value="1">
+              <button class="btn secondary" type="submit">Salvar opção</button>
+            </form>
             <div id="admin-decisions-list" class="stack-list"></div>
+            <div id="admin-decision-options-list" class="stack-list"></div>
           </div>
 
           <div id="admin-tab-prompts" class="admin-panel">

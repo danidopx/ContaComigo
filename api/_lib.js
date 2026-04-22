@@ -189,6 +189,21 @@ export async function getSessionBundle(sessionId) {
   };
 }
 
+export async function getCompatiblePlayerCharacters(userId, story) {
+  if (!userId || !story) return [];
+
+  const systemName = story.system_base || 'generic';
+  const compatibility = story.character_compatibility || 'generic-flex';
+  return dbSelect('player_characters', {
+    select: '*',
+    user_id: `eq.${userId}`,
+    is_active: 'eq.true',
+    deleted_at: 'is.null',
+    or: `(system_name.eq.${systemName},sheet_template.eq.${compatibility},sheet_template.eq.generic-flex)`,
+    order: 'updated_at.desc'
+  });
+}
+
 export async function logSessionEvent(sessionId, eventType, payload = {}) {
   await dbInsert('session_events', [{
     session_id: sessionId,
