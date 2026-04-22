@@ -83,7 +83,7 @@ textarea { resize: vertical; }
   pointer-events: none;
 }
 .hero-copy h2 {
-  max-width: 11ch;
+  max-width: 13ch;
   font-size: clamp(2.1rem, 5vw, 4.1rem);
   line-height: 0.95;
   letter-spacing: -0.05em;
@@ -92,6 +92,11 @@ textarea { resize: vertical; }
   max-width: 52ch;
   color: var(--muted);
   font-size: 1.05rem;
+}
+.hero-copy {
+  display: grid;
+  align-content: start;
+  gap: 10px;
 }
 .hero-actions {
   justify-content: flex-start;
@@ -106,6 +111,9 @@ textarea { resize: vertical; }
 }
 .metric-card span {
   color: var(--muted);
+}
+.metric-card {
+  min-height: 132px;
 }
 .login-card {
   max-width: 520px;

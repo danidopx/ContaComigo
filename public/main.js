@@ -14,6 +14,18 @@ function updateLoginStatus(message = '', tone = '') {
   node.className = `login-status${message ? ` ${tone}` : ''}`;
 }
 
+function updateAuthScreens() {
+  const loginButtons = [
+    document.getElementById('btn-start-login'),
+    document.getElementById('btn-open-login'),
+    document.getElementById('screen-login')
+  ];
+  loginButtons.forEach(node => {
+    if (!node) return;
+    node.classList.toggle('hidden', Boolean(appState.user));
+  });
+}
+
 function updateHeader() {
   const chip = document.getElementById('user-chip');
   const logout = document.getElementById('btn-logout');
@@ -32,6 +44,7 @@ function updateHeader() {
   const adminVisible = Boolean(appState.user && appState.isAdmin);
   admin.classList.toggle('hidden', !adminVisible);
   openAdmin.classList.toggle('hidden', !adminVisible);
+  updateAuthScreens();
 }
 
 async function refreshDashboard() {
@@ -92,9 +105,11 @@ async function openSession(sessionId) {
 async function handleAuthChange(user) {
   updateHeader();
   if (!user) {
+    updateLoginStatus(appReady ? 'Login Google pronto.' : '', appReady ? 'success' : '');
     showScreen('screen-landing');
     return;
   }
+  updateLoginStatus('', '');
   await refreshDashboard();
   showScreen('screen-dashboard');
 }
