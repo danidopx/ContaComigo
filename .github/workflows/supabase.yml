@@ -57,6 +57,23 @@ jobs:
         if: steps.supabase_secrets.outputs.enabled == 'true'
         uses: supabase/setup-cli@v1
 
+      - name: Atualizar config de auth no Supabase
+        if: steps.supabase_secrets.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          curl --fail-with-body -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/config/auth" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d @- <<'JSON'
+          {
+            "site_url": "https://contacomigo-mk67.onrender.com",
+            "uri_allow_list": "https://contacomigo-mk67.onrender.com,https://contacomigo-mk67.onrender.com/,http://127.0.0.1:3000,http://localhost:3000"
+          }
+          JSON
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
       - name: Aplicar migrations no Supabase
         if: steps.supabase_secrets.outputs.enabled == 'true'
         shell: bash
