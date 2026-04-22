@@ -1,6 +1,9 @@
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_URL_FALLBACK = 'https://gjrnaavkyalwolldexft.supabase.co';
+const SUPABASE_ANON_KEY_FALLBACK = 'sb_publishable_CPM-CH4JV3muBw_DrGk-zQ_Rii5iGU6';
+
+const SUPABASE_URL = process.env.SUPABASE_URL || SUPABASE_URL_FALLBACK;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || SUPABASE_ANON_KEY_FALLBACK;
 const APP_ADMIN_EMAIL = process.env.APP_ADMIN_EMAIL || 'admin@example.com';
 
 export function withCors(res) {
