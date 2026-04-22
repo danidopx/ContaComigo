@@ -1,5 +1,5 @@
-const SUPABASE_URL_FALLBACK = 'https://gjrnaavkyalwolldexft.supabase.co';
-const SUPABASE_ANON_KEY_FALLBACK = 'sb_publishable_CPM-CH4JV3muBw_DrGk-zQ_Rii5iGU6';
+const SUPABASE_URL_FALLBACK = 'https://yxgnltpllfobglhcezwt.supabase.co';
+const SUPABASE_ANON_KEY_FALLBACK = 'sb_publishable_dWvgXlQ1wrwpUt9e7xHb3w_gRmfFhfA';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || SUPABASE_URL_FALLBACK;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
