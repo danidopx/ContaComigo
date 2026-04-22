@@ -26,38 +26,39 @@
 
     <main>
       <section id="screen-landing" class="screen active">
-        <div class="hero card">
-          <div>
+        <div class="hero card hero-surface">
+          <div class="hero-copy">
             <p class="eyebrow">Até 4 jogadores por sessão</p>
-            <h2>Histórias cooperativas em capítulos, decisões simultâneas e impacto gerado por IA.</h2>
-            <p>Entre com Google, escolha uma campanha, monte seu personagem e avance quando todos decidirem.</p>
-            <div class="actions">
+            <h2>Uma mesa cooperativa, rápida de entrar e forte no clima.</h2>
+            <p>Login com Google, campanha pronta, decisões simultâneas e rodada consolidada com IA.</p>
+            <div class="actions hero-actions">
               <button id="btn-start-login" class="btn">Entrar com Google</button>
-              <button id="btn-open-login" class="btn secondary">Abrir login</button>
+              <button id="btn-open-login" class="btn ghost">Ver acesso</button>
             </div>
           </div>
-          <div class="stats">
-            <article>
-              <strong>Mesmo padrão da base</strong>
-              <span>SPA estática + API Node + Supabase + Gemini</span>
+          <div class="stats hero-stats">
+            <article class="metric-card">
+              <strong>Entrada simples</strong>
+              <span>Google via Supabase e sessão pronta em poucos cliques.</span>
             </article>
-            <article>
-              <strong>Fluxo do jogo</strong>
-              <span>Lobby, personagem, capítulo, decisão, espera e resumo</span>
+            <article class="metric-card">
+              <strong>Fluxo enxuto</strong>
+              <span>Lobby, ficha, capítulo, decisão e resumo.</span>
             </article>
-            <article>
-              <strong>Painel admin</strong>
-              <span>CRUD de histórias, capítulos, decisões, prompts, regras e sessões</span>
+            <article class="metric-card">
+              <strong>Admin direto</strong>
+              <span>Histórias, capítulos, regras e prompts no mesmo painel.</span>
             </article>
           </div>
         </div>
       </section>
 
       <section id="screen-login" class="screen">
-        <div class="card centered">
+        <div class="card centered login-card">
           <p class="eyebrow">Autenticação Supabase</p>
-          <h2>Entrar</h2>
-          <p>O login principal é com Google, mantendo a mesma estratégia do projeto base.</p>
+          <h2>Acessar mesa</h2>
+          <p>Use sua conta Google para entrar e sincronizar seu perfil automaticamente.</p>
+          <div id="login-status" class="login-status"></div>
           <div class="actions">
             <button id="btn-google-login" class="btn">Continuar com Google</button>
             <button data-nav="screen-landing" class="btn ghost">Voltar</button>

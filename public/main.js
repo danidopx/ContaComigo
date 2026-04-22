@@ -5,6 +5,14 @@ import { bindSimpleNavigation, formToJson, setLoading, showScreen, toast } from 
 import { renderAdminList, renderChapter, renderLobby, renderSessions, renderStories, renderSummary } from './cv-builder.js';
 
 let lastConsolidation = null;
+let appReady = false;
+
+function updateLoginStatus(message = '', tone = '') {
+  const node = document.getElementById('login-status');
+  if (!node) return;
+  node.textContent = message;
+  node.className = `login-status${message ? ` ${tone}` : ''}`;
+}
 
 function updateHeader() {
   const chip = document.getElementById('user-chip');
@@ -194,7 +202,21 @@ function bindButtons() {
 
   document.getElementById('btn-start-login').addEventListener('click', () => showScreen('screen-login'));
   document.getElementById('btn-open-login').addEventListener('click', () => showScreen('screen-login'));
-  document.getElementById('btn-google-login').addEventListener('click', async () => signInWithGoogle());
+  document.getElementById('btn-google-login').addEventListener('click', async () => {
+    if (!appReady) {
+      updateLoginStatus('A configuração do login ainda não carregou. Verifique SUPABASE_URL e SUPABASE_ANON_KEY no Render.', 'error');
+      toast('Login indisponível no momento.');
+      return;
+    }
+
+    try {
+      updateLoginStatus('Redirecionando para o Google...', 'info');
+      await signInWithGoogle();
+    } catch (error) {
+      updateLoginStatus(error.message || 'Não foi possível iniciar o login Google.', 'error');
+      toast(error.message || 'Falha ao iniciar login Google.');
+    }
+  });
   document.getElementById('btn-logout').addEventListener('click', async () => {
     await signOut();
     toast('Sessão encerrada.');
@@ -229,12 +251,16 @@ function bindButtons() {
 async function bootstrap() {
   setLoading(true, 'Inicializando aplicativo...');
   try {
-    await initPublicConfig();
     bindButtons();
     bindForms();
+    await initPublicConfig();
+    appReady = true;
+    updateLoginStatus('Login Google pronto.', 'success');
     await initAuth(handleAuthChange);
     await sincronizarVersaoAppNaTela();
   } catch (error) {
+    appReady = false;
+    updateLoginStatus(error.message || 'Falha ao carregar a configuração do login.', 'error');
     toast(error.message || 'Falha ao inicializar.');
   } finally {
     setLoading(false);
