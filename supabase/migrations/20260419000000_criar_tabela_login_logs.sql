@@ -17,6 +17,10 @@ CREATE INDEX IF NOT EXISTS idx_login_logs_email ON public.login_logs(email);
 -- RLS Policies
 ALTER TABLE public.login_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admin can view all login logs" ON public.login_logs;
+DROP POLICY IF EXISTS "Users can view their own login logs" ON public.login_logs;
+DROP POLICY IF EXISTS "System can insert login logs" ON public.login_logs;
+
 -- Apenas o admin pode ver todos os logs
 CREATE POLICY "Admin can view all login logs" 
 ON public.login_logs FOR SELECT 

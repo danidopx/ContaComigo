@@ -1,0 +1,69 @@
+name: Validate & Sync ContaComigo
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - codex/**
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validar_projeto:
+    if: ${{ !contains(github.event.head_commit.message, '[skip actions]') && !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validar estrutura e sintaxe
+        run: npm run ci:validate
+
+  sincronizar_supabase:
+    if: ${{ github.event_name == 'push' && !contains(github.event.head_commit.message, '[skip actions]') && !contains(github.event.head_commit.message, '[skip ci]') }}
+    needs: validar_projeto
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Verificar segredos Supabase
+        id: supabase_secrets
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          if [[ -n "$SUPABASE_ACCESS_TOKEN" && -n "$SUPABASE_DB_PASSWORD" && -n "$SUPABASE_PROJECT_ID" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Segredos Supabase não configurados; pulando db push."
+          fi
+
+      - name: Instalar Supabase CLI
+        if: steps.supabase_secrets.outputs.enabled == 'true'
+        uses: supabase/setup-cli@v1
+
+      - name: Aplicar migrations no Supabase
+        if: steps.supabase_secrets.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_ID"
+          supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}

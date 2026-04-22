@@ -3,8 +3,9 @@ import { constants } from 'node:fs';
 
 const requiredFiles = [
   'package.json',
-  'vercel.json',
   '.env.example',
+  'render.yaml',
+  'server.js',
   'api/build-version.js',
   'api/public-config.js',
   'api/ia.js',
@@ -30,6 +31,7 @@ const requiredFiles = [
 ];
 
 const jsFiles = [
+  'server.js',
   'api/build-version.js',
   'api/public-config.js',
   'api/ia.js',
@@ -63,18 +65,6 @@ async function validateJson(file) {
   JSON.parse(await readFile(file, 'utf8'));
 }
 
-async function validateVercelConfig() {
-  const config = JSON.parse(await readFile('vercel.json', 'utf8'));
-
-  if (config?.git?.deploymentEnabled !== true) {
-    throw new Error('vercel.json: git.deploymentEnabled deve permanecer true.');
-  }
-
-  if (config?.github?.autoAlias !== false) {
-    throw new Error('vercel.json: github.autoAlias deve permanecer false.');
-  }
-}
-
 async function validateJavaScript(file) {
   const content = await readFile(file, 'utf8');
   const normalized = content
@@ -84,7 +74,8 @@ async function validateJavaScript(file) {
     .replace(/^\s*export\s*\{[\s\S]*?\}\s*from\s+['"][^'"]+['"];\s*$/gm, '')
     .replace(/\bexport\s+default\s+/g, '')
     .replace(/\bexport\s+(?=async\s+function|function|const|let|var|class)/g, '')
-    .replace(/\bexport\s*\{[\s\S]*?\};?/gm, '');
+    .replace(/\bexport\s*\{[\s\S]*?\};?/gm, '')
+    .replace(/\bimport\.meta\b/g, '({})');
 
   try {
     new Function(normalized);
@@ -95,8 +86,7 @@ async function validateJavaScript(file) {
 
 try {
   await Promise.all(requiredFiles.map(ensureFileExists));
-  await Promise.all([validateJson('package.json'), validateJson('vercel.json')]);
-  await validateVercelConfig();
+  await validateJson('package.json');
 
   for (const file of jsFiles) {
     await validateJavaScript(file);

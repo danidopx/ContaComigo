@@ -22,18 +22,22 @@ export default function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const vercelEnv = String(process.env.VERCEL_ENV || '').toLowerCase();
-    const environmentName = vercelEnv === 'production' ? 'production' : 'preview';
-    const commitSha = String(process.env.VERCEL_GIT_COMMIT_SHA || '').trim();
-    const commitRef = String(process.env.VERCEL_GIT_COMMIT_REF || '').trim();
-    const deploymentUrl = String(process.env.VERCEL_URL || '').trim();
+    const renderService = String(process.env.RENDER_SERVICE_NAME || '').trim();
+    const renderExternalUrl = String(process.env.RENDER_EXTERNAL_URL || '').trim();
+    const renderGitCommit = String(process.env.RENDER_GIT_COMMIT || '').trim();
+    const renderGitBranch = String(process.env.RENDER_GIT_BRANCH || '').trim();
+
+    const environmentName = renderExternalUrl ? 'production' : 'preview';
+    const commitSha = renderGitCommit;
+    const commitRef = renderGitBranch;
+    const deploymentUrl = renderExternalUrl;
 
     return res.status(200).json({
         environment_name: environmentName,
         current_version: version,
         commit_ref: commitSha,
         branch_name: commitRef,
-        deployment_url: deploymentUrl ? `https://${deploymentUrl.replace(/^https?:\/\//i, '')}` : '',
-        source: 'runtime_build'
+        deployment_url: deploymentUrl ? `${deploymentUrl.startsWith('http') ? deploymentUrl : `https://${deploymentUrl.replace(/^https?:\/\//i, '')}`}` : '',
+        source: renderService ? 'runtime_render' : 'runtime_build'
     });
 }

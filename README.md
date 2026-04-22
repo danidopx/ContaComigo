@@ -1,27 +1,30 @@
 # ContaComigo
 
-Aplicação web de RPG narrativo com IA para até 4 jogadores simultâneos, derivada diretamente do projeto `cv-edi-pro`.
+Aplicação web de RPG narrativo com IA para até 4 jogadores simultâneos, preparada para deploy no Render.
 
 ## Stack reaproveitada
 
 - Frontend SPA estática em `public/`
-- Vercel Functions em `api/`
+- Backend Node servindo a SPA e os handlers em `api/`
 - Supabase para auth, banco, realtime e RLS
 - Google OAuth via Supabase Auth
 - Google Gemini no backend com o mesmo padrão de integração da base
-- GitHub Actions + Vercel + versionamento em banco
+- GitHub Actions + Render + versionamento em banco
 
 ## Estrutura
 
 - `public/`: SPA do jogo, dashboard, lobby, capítulo, decisões e admin
 - `api/`: handlers de sessão, decisões, IA, estado atual, admin e build/version
+- `server.js`: servidor HTTP Node compatível com Render
+- `render.yaml`: definição do serviço Render
 - `supabase/migrations/`: schema completo do jogo e versionamento compatível
-- `.github/workflows/supabase.yml`: pipeline de preview, produção, banco e versionamento
+- `.github/workflows/supabase.yml`: validação e sync opcional de migrations no Supabase
 
 ## Variáveis de ambiente
 
-Copie `.env.example` e configure no Supabase, Vercel e GitHub.
+Copie `.env.example` e configure no Render, Supabase e GitHub.
 
+- `PORT`
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -30,13 +33,12 @@ Copie `.env.example` e configure no Supabase, Vercel e GitHub.
 - `SUPABASE_PROJECT_ID`
 - `GEMINI_KEY`
 - `APP_ADMIN_EMAIL`
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
-- `VERCEL_SCOPE`
-- `VERCEL_PRODUCTION_DOMAIN`
-- `VERCEL_PREVIEW_ALIAS`
-- `STABLE_PREVIEW_BRANCH`
+
+## Deploy
+
+- Serviço Render: `srv-d7j4fsm7r5hc73cherc0`
+- URL atual: `https://contacomigo-mk67.onrender.com`
+- O Render pode fazer deploy automático a cada push se o repositório estiver conectado ao serviço.
 
 ## Rodando
 
