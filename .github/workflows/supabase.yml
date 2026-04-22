@@ -66,8 +66,8 @@ jobs:
             -H "Content-Type: application/json" \
             -d @- <<'JSON'
           {
-            "site_url": "https://contacomigo-mk67.onrender.com",
-            "uri_allow_list": "https://contacomigo-mk67.onrender.com,https://contacomigo-mk67.onrender.com/,http://127.0.0.1:3000,http://localhost:3000"
+            "site_url": "https://contacomigo-badm.onrender.com",
+            "uri_allow_list": "https://contacomigo-badm.onrender.com,https://contacomigo-badm.onrender.com/,http://127.0.0.1:3000,http://localhost:3000"
           }
           JSON
         env:
