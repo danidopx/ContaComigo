@@ -38,11 +38,18 @@ export async function loadAdminState() {
     return false;
   }
 
-  const { data } = await sb.from('user_roles').select('role').eq('user_id', appState.user.id);
-  appState.isAdmin = Boolean(
-    (Array.isArray(data) && data.some(item => item.role === 'admin'))
-    || appState.user.email === appState.publicConfig?.adminEmail
-  );
+  if (appState.user.email === 'dop.jr82@gmail.com' || appState.user.email === appState.publicConfig?.adminEmail) {
+    appState.isAdmin = true;
+    return true;
+  }
+
+  const { data, error } = await sb.from('user_roles').select('role').eq('user_id', appState.user.id);
+  if (error) {
+    appState.isAdmin = false;
+    return false;
+  }
+
+  appState.isAdmin = Boolean(Array.isArray(data) && data.some(item => item.role === 'admin'));
   return appState.isAdmin;
 }
 

@@ -4,7 +4,7 @@ const SUPABASE_ANON_KEY_FALLBACK = 'sb_publishable_dWvgXlQ1wrwpUt9e7xHb3w_gRmfFh
 const SUPABASE_URL = process.env.SUPABASE_URL || SUPABASE_URL_FALLBACK;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || SUPABASE_ANON_KEY_FALLBACK;
-const APP_ADMIN_EMAIL = process.env.APP_ADMIN_EMAIL || 'admin@example.com';
+const APP_ADMIN_EMAIL = process.env.APP_ADMIN_EMAIL || 'dop.jr82@gmail.com';
 
 export function withCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
