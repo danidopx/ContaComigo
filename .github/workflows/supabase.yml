@@ -84,3 +84,92 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
+      - name: Registrar versão automática no banco
+        if: steps.supabase_secrets.outputs.enabled == 'true' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_EVENT_HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          APP_BASE_VERSION=$(node -p "require('./package.json').version")
+          APP_VERSION="${APP_BASE_VERSION}-build.${GITHUB_RUN_NUMBER}"
+          DEPLOY_URL="https://contacomigo-badm.onrender.com"
+          RELEASE_NOTES=$(printf "%s" "${GITHUB_EVENT_HEAD_COMMIT_MESSAGE:-Deploy automático}" | sed "s/'/''/g")
+          RESPONSIBLE=$(printf "%s" "${GITHUB_ACTOR:-github-actions}" | sed "s/'/''/g")
+
+          export PGPASSWORD="$SUPABASE_DB_PASSWORD"
+          psql "host=db.${SUPABASE_PROJECT_ID}.supabase.co port=5432 dbname=postgres user=postgres sslmode=require" <<SQL
+          DO \$\$
+          DECLARE
+            last_version text;
+          BEGIN
+            SELECT current_version
+              INTO last_version
+            FROM public.app_versions
+            WHERE environment_name = 'production'
+              AND is_current = true
+            ORDER BY release_date DESC
+            LIMIT 1;
+
+            UPDATE public.app_versions
+            SET is_current = false
+            WHERE environment_name = 'production'
+              AND is_current = true
+              AND commit_ref <> '${GITHUB_SHA}';
+
+            IF EXISTS (
+              SELECT 1
+              FROM public.app_versions
+              WHERE environment_name = 'production'
+                AND commit_ref = '${GITHUB_SHA}'
+            ) THEN
+              UPDATE public.app_versions
+              SET
+                current_version = '${APP_VERSION}',
+                previous_version = COALESCE(previous_version, last_version),
+                responsible_name = '${RESPONSIBLE}',
+                deployment_url = '${DEPLOY_URL}',
+                release_notes = '${RELEASE_NOTES}',
+                source = 'github_actions',
+                is_current = true,
+                is_public = true,
+                updated_at = now()
+              WHERE environment_name = 'production'
+                AND commit_ref = '${GITHUB_SHA}';
+            ELSE
+              INSERT INTO public.app_versions (
+                app_name,
+                environment_name,
+                current_version,
+                previous_version,
+                release_date,
+                responsible_name,
+                deployment_url,
+                commit_ref,
+                release_notes,
+                source,
+                is_current,
+                is_public
+              ) VALUES (
+                'ContaComigo',
+                'production',
+                '${APP_VERSION}',
+                last_version,
+                now(),
+                '${RESPONSIBLE}',
+                '${DEPLOY_URL}',
+                '${GITHUB_SHA}',
+                '${RELEASE_NOTES}',
+                'github_actions',
+                true,
+                true
+              );
+            END IF;
+          END
+          \$\$;
+          SQL
