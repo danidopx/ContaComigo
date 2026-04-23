@@ -26,32 +26,49 @@ function updateAuthScreens() {
   });
 }
 
+function updateLandingActions() {
+  const openDashboard = document.getElementById('btn-open-dashboard');
+  const landingAdmin = document.getElementById('btn-landing-admin');
+
+  if (openDashboard) {
+    openDashboard.classList.toggle('hidden', !appState.user);
+  }
+
+  if (landingAdmin) {
+    landingAdmin.classList.toggle('hidden', !(appState.user && appState.isAdmin));
+  }
+}
+
 function updateHeader() {
   const chip = document.getElementById('user-chip');
   const logout = document.getElementById('btn-logout');
   const admin = document.getElementById('btn-admin');
   const openAdmin = document.getElementById('btn-open-admin');
+  const home = document.getElementById('btn-home');
 
   if (appState.user) {
     chip.textContent = appState.user.user_metadata?.full_name || appState.user.email;
     chip.classList.remove('hidden');
     logout.classList.remove('hidden');
+    home.classList.remove('hidden');
   } else {
     chip.classList.add('hidden');
     logout.classList.add('hidden');
+    home.classList.add('hidden');
   }
 
   const adminVisible = Boolean(appState.user && appState.isAdmin);
   admin.classList.toggle('hidden', !adminVisible);
   openAdmin.classList.toggle('hidden', !adminVisible);
   updateAuthScreens();
+  updateLandingActions();
 }
 
 async function refreshDashboard() {
   setLoading(true, 'Atualizando dashboard...');
   try {
     const [stories, sessions] = await Promise.all([loadStories(), loadMySessions()]);
-    renderStories(document.getElementById('stories-list'), stories, async storyId => {
+    renderStories(document.getElementById('landing-stories-list'), stories, async storyId => {
       const created = await createSession(storyId);
       toast('Sessão criada.');
       await openSession(created.session.id);
@@ -111,7 +128,7 @@ async function handleAuthChange(user) {
   }
   updateLoginStatus('', '');
   await refreshDashboard();
-  showScreen('screen-dashboard');
+  showScreen('screen-landing');
 }
 
 async function loadAdmin() {
@@ -232,6 +249,12 @@ function bindButtons() {
 
   document.getElementById('btn-start-login').addEventListener('click', () => showScreen('screen-login'));
   document.getElementById('btn-open-login').addEventListener('click', () => showScreen('screen-login'));
+  document.getElementById('btn-home').addEventListener('click', () => showScreen('screen-landing'));
+  document.getElementById('btn-open-dashboard').addEventListener('click', () => showScreen('screen-dashboard'));
+  document.getElementById('btn-landing-admin').addEventListener('click', async () => {
+    await loadAdmin();
+    showScreen('screen-admin');
+  });
   document.getElementById('btn-google-login').addEventListener('click', async () => {
     if (!appReady) {
       updateLoginStatus('A configuração do login ainda não carregou. Verifique SUPABASE_URL e SUPABASE_ANON_KEY no Render.', 'error');

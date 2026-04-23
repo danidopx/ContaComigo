@@ -19,6 +19,7 @@
       </div>
       <div class="topbar-actions">
         <div id="user-chip" class="user-chip hidden"></div>
+        <button id="btn-home" class="btn ghost hidden">Página inicial</button>
         <button id="btn-admin" class="btn secondary hidden">Admin</button>
         <button id="btn-logout" class="btn ghost hidden">Sair</button>
       </div>
@@ -56,6 +57,28 @@
             </article>
           </div>
         </div>
+
+        <div class="landing-grid">
+          <div class="card">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Histórias publicadas</p>
+                <h2>Escolha uma campanha para começar</h2>
+              </div>
+            </div>
+            <div id="landing-stories-list" class="grid-list"></div>
+          </div>
+
+          <div class="card quick-access-card">
+            <p class="eyebrow">Acesso rápido</p>
+            <h3>Sua navegação</h3>
+            <p class="muted-copy">A página inicial fica voltada para explorar campanhas. O dashboard guarda suas sessões e atalhos internos.</p>
+            <div class="actions quick-access-actions">
+              <button id="btn-open-dashboard" class="btn hidden">Abrir dashboard</button>
+              <button id="btn-landing-admin" class="btn secondary hidden">Painel admin</button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section id="screen-login" class="screen">
@@ -74,27 +97,18 @@
       <section id="screen-dashboard" class="screen">
         <div class="layout-grid">
           <aside class="sidebar card">
-            <h3>Dashboard</h3>
+            <h3>Área interna</h3>
             <button id="btn-refresh-dashboard" class="btn secondary full">Atualizar</button>
+            <button data-nav="screen-landing" class="btn ghost full">Página inicial</button>
             <button id="btn-open-admin" class="btn ghost full hidden">Painel admin</button>
             <div class="status-box">
-              <span>Build</span>
-              <strong data-app-version-label>ContaComigo v0.1.0 - Preview</strong>
-              <small data-app-version-meta></small>
+              <span>Sessões</span>
+              <strong>Gerencie suas mesas</strong>
+              <small>Entre em histórias pela home e acompanhe suas campanhas por aqui.</small>
             </div>
           </aside>
 
           <div class="content-stack">
-            <div class="card">
-              <div class="section-head">
-                <div>
-                  <p class="eyebrow">Histórias</p>
-                  <h2>Campanhas disponíveis</h2>
-                </div>
-              </div>
-              <div id="stories-list" class="grid-list"></div>
-            </div>
-
             <div class="card">
               <div class="section-head">
                 <div>
