@@ -25,9 +25,13 @@ async function getCurrentVersion(environmentName) {
     return current || null;
 }
 
-function buildRuntimeVersion(commitSha) {
-    const shortSha = String(commitSha || '').trim().slice(0, 7);
-    return shortSha ? `${version}+${shortSha}` : version;
+function normalizeVersion(value) {
+    return String(value || version).trim().replace(/\+.*/, '').replace(/-build\.\d+$/i, '') || version;
+}
+
+function incrementPatchVersion(value) {
+    const [major, minor, patch] = normalizeVersion(value).split('.').map(part => Number.parseInt(part, 10) || 0);
+    return `${major}.${minor}.${patch + 1}`;
 }
 
 async function ensureCurrentVersion({
@@ -40,6 +44,13 @@ async function ensureCurrentVersion({
     if (!SUPABASE_SERVICE_ROLE_KEY) {
         return null;
     }
+
+    const [latestVersion] = await dbSelect('app_versions', {
+        select: 'id,current_version,commit_ref',
+        environment_name: `eq.${environmentName}`,
+        order: 'release_date.desc',
+        limit: '1'
+    });
 
     const [existingByCommit] = await dbSelect('app_versions', {
         select: 'id,current_version,source',
@@ -58,10 +69,11 @@ async function ensureCurrentVersion({
     }, 'return=minimal');
 
     if (existingByCommit?.id) {
+        const normalizedCurrentVersion = normalizeVersion(existingByCommit.current_version);
         const [updated] = await dbPatch('app_versions', {
             id: `eq.${existingByCommit.id}`
         }, {
-            current_version: currentVersion,
+            current_version: normalizedCurrentVersion,
             deployment_url: deploymentUrl,
             source,
             is_current: true,
@@ -71,18 +83,15 @@ async function ensureCurrentVersion({
         return updated || null;
     }
 
-    const [lastCurrent] = await dbSelect('app_versions', {
-        select: 'current_version',
-        environment_name: `eq.${environmentName}`,
-        order: 'release_date.desc',
-        limit: '1'
-    });
+    const nextVersion = latestVersion?.current_version
+        ? incrementPatchVersion(latestVersion.current_version)
+        : normalizeVersion(currentVersion);
 
     const [inserted] = await dbInsert('app_versions', [{
         app_name: 'ContaComigo',
         environment_name: environmentName,
-        current_version: currentVersion,
-        previous_version: lastCurrent?.current_version || null,
+        current_version: nextVersion,
+        previous_version: latestVersion?.current_version || null,
         release_date: new Date().toISOString(),
         responsible_name: 'render-runtime',
         deployment_url: deploymentUrl,
@@ -123,7 +132,7 @@ export default async function handler(req, res) {
         ? `${deploymentUrl.startsWith('http') ? deploymentUrl : `https://${deploymentUrl.replace(/^https?:\/\//i, '')}`}`
         : '';
 
-    let currentVersion = buildRuntimeVersion(commitSha);
+    let currentVersion = normalizeVersion(version);
     let versionSource = renderService ? 'runtime_render' : 'runtime_build';
     let syncStatus = SUPABASE_SERVICE_ROLE_KEY ? 'pending' : 'service_role_missing';
     let syncError = '';

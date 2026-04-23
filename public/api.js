@@ -134,8 +134,9 @@ export async function sincronizarVersaoAppNaTela() {
   const version = await carregarVersaoAtualApp().catch(() => null);
   if (!version) return;
 
-  const labelText = `ContaComigo v${version.current_version}${version.environment_name === 'preview' ? ' - Preview' : ''}`;
-  const metaText = `${version.environment_name} | ${new Date(version.release_date).toLocaleString('pt-BR')}`;
+  const environmentLabel = version.environment_name === 'preview' ? 'Prévia' : 'Produção';
+  const labelText = `ContaComigo v${version.current_version}`;
+  const metaText = `${environmentLabel} | ${new Date(version.release_date).toLocaleString('pt-BR')}`;
   labels.forEach(label => { label.textContent = labelText; });
   metas.forEach(meta => { meta.textContent = metaText; });
 }
