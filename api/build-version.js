@@ -1,4 +1,5 @@
 import pkg from '../package.json' with { type: 'json' };
+import { SUPABASE_SERVICE_ROLE_KEY, dbSelect } from './_lib.js';
 
 const version = pkg?.version || '0.0.0';
 
@@ -8,7 +9,23 @@ function definirCors(res) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
-export default function handler(req, res) {
+async function getCurrentVersion(environmentName) {
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return null;
+    }
+
+    const [current] = await dbSelect('app_versions', {
+        select: 'current_version,environment_name,commit_ref,deployment_url,source,release_date',
+        environment_name: `eq.${environmentName}`,
+        is_current: 'eq.true',
+        order: 'release_date.desc',
+        limit: '1'
+    });
+
+    return current || null;
+}
+
+export default async function handler(req, res) {
     definirCors(res);
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -31,13 +48,29 @@ export default function handler(req, res) {
     const commitSha = renderGitCommit;
     const commitRef = renderGitBranch;
     const deploymentUrl = renderExternalUrl;
+    const deploymentUrlNormalized = deploymentUrl
+        ? `${deploymentUrl.startsWith('http') ? deploymentUrl : `https://${deploymentUrl.replace(/^https?:\/\//i, '')}`}`
+        : '';
+
+    let currentVersion = version;
+    let versionSource = renderService ? 'runtime_render' : 'runtime_build';
+
+    try {
+        const persistedVersion = await getCurrentVersion(environmentName);
+        if (persistedVersion?.current_version) {
+            currentVersion = persistedVersion.current_version;
+            versionSource = persistedVersion.source || 'database';
+        }
+    } catch {
+        // Keep package.json fallback when the database is temporarily unavailable.
+    }
 
     return res.status(200).json({
         environment_name: environmentName,
-        current_version: version,
+        current_version: currentVersion,
         commit_ref: commitSha,
         branch_name: commitRef,
-        deployment_url: deploymentUrl ? `${deploymentUrl.startsWith('http') ? deploymentUrl : `https://${deploymentUrl.replace(/^https?:\/\//i, '')}`}` : '',
-        source: renderService ? 'runtime_render' : 'runtime_build'
+        deployment_url: deploymentUrlNormalized,
+        source: versionSource
     });
 }
