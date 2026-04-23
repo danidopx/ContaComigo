@@ -412,15 +412,9 @@ function bindForms() {
       setLoading(true, 'Gerando base...');
       try {
         const payload = await generateStoryBuilder(storyId, input, meta);
-        loadBuilderPayload({
-          story: { id: storyId },
-          builderState: payload.builderState,
-          settings: meta.settings,
-          chatPresets: meta.chatPresets,
-          mediaMetadata: meta.mediaMetadata,
-          versions: []
-        });
-        toast('Base gerada.');
+        const refreshedPayload = await loadStoryBuilder(storyId);
+        loadBuilderPayload(refreshedPayload);
+        toast(payload.warning || 'Base gerada.');
       } finally {
         setLoading(false);
       }

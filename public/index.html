@@ -403,39 +403,18 @@
               <div class="builder-sidebar">
                 <div class="stack-list">
                   <article class="stack-item">
-                    <h4>História alvo</h4>
-                    <select id="builder-story-select"></select>
+                    <h4>Progresso do builder</h4>
+                    <div class="builder-stepper">
+                      <button type="button" class="builder-step-chip active" data-builder-step-index>Passo 1</button>
+                      <button type="button" class="builder-step-chip" data-builder-step-index>Passo 2</button>
+                      <button type="button" class="builder-step-chip" data-builder-step-index>Passo 3</button>
+                      <button type="button" class="builder-step-chip" data-builder-step-index>Passo 4</button>
+                      <button type="button" class="builder-step-chip" data-builder-step-index>Passo 5</button>
+                    </div>
                   </article>
                   <article class="stack-item">
-                    <h4>Base narrativa</h4>
-                    <form id="builder-generate-form" class="form-grid">
-                      <label class="field-block">
-                        <span>Título base</span>
-                        <small>Nome que a IA vai usar como referência.</small>
-                        <input id="builder-title" name="title" placeholder="Título base">
-                      </label>
-                      <label class="field-block">
-                        <span>História geral</span>
-                        <small>Resumo amplo da campanha para a IA gerar a base praticamente sozinha.</small>
-                        <textarea id="builder-premise" name="premise" rows="5" placeholder="Descreva a ideia geral da campanha, o conflito central, possíveis atos e o tipo de final desejado."></textarea>
-                      </label>
-                      <label class="field-block">
-                        <span>Gênero</span>
-                        <small>Ex: fantasia, horror, ficção científica.</small>
-                        <input id="builder-genre" name="genre" placeholder="Gênero">
-                      </label>
-                      <label class="field-block">
-                        <span>Tom</span>
-                        <small>Ex: tenso, leve, dramático, épico.</small>
-                        <input id="builder-tone" name="tone" placeholder="Tom">
-                      </label>
-                      <label class="field-block">
-                        <span>Modelo narrativo</span>
-                        <small>Ex: 3 atos, jornada do herói, missão com reviravolta.</small>
-                        <input id="builder-model" name="narrativeModel" placeholder="Modelo narrativo">
-                      </label>
-                      <button class="btn" type="submit">Gerar Base</button>
-                    </form>
+                    <h4>História alvo</h4>
+                    <select id="builder-story-select"></select>
                   </article>
                   <article class="stack-item">
                     <h4>Mensagens prontas</h4>
@@ -471,18 +450,197 @@
               </div>
 
               <div class="builder-main">
+                <div class="builder-step-panel active" data-builder-step-panel="1">
+                  <div class="card">
+                    <p class="eyebrow">Passo 1</p>
+                    <h3>Descrição guiada</h3>
+                    <p class="muted-copy">Quanto mais completo, melhor a geração. A IA tentará montar automaticamente título, resumo, atos, início, meio, fim, decisões e metadados. Tudo poderá ser editado depois.</p>
+                    <div class="builder-guided-grid">
+                      <div class="stack-list">
+                        <article class="stack-item guided-card">
+                          <h4>Modelo esperado</h4>
+                          <pre class="builder-template-block">Título provisório:
+Gênero:
+Tom:
+Ambientação:
+Tema central:
+Tipo de jornada:
+Quantidade de jogadores:
+Faixa de duração:
+Resumo da premissa:
+Como a história começa:
+Possíveis conflitos:
+Tipo de antagonista:
+Possíveis reviravoltas:
+Como imagina o final:
+Referências opcionais:
+Restrições e observações:</pre>
+                        </article>
+                      </div>
+                      <form id="builder-guided-form" class="form-grid">
+                        <textarea id="builder-guided-description" rows="18" placeholder="Preencha a descrição guiada aqui."></textarea>
+                        <div class="actions">
+                          <button type="button" id="builder-guided-fill-template" class="btn ghost">Inserir modelo</button>
+                          <button type="submit" class="btn">Próximo passo</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="builder-step-panel" data-builder-step-panel="2">
+                  <div class="card">
+                    <p class="eyebrow">Passo 2</p>
+                    <h3>Revisão da base gerada</h3>
+                    <form id="builder-review-form" class="form-grid">
+                      <label class="field-block">
+                        <span>Título</span>
+                        <input id="builder-review-title" placeholder="Título da história">
+                      </label>
+                      <label class="field-block">
+                        <span>Slug</span>
+                        <input id="builder-review-slug" placeholder="Slug">
+                      </label>
+                      <label class="field-block">
+                        <span>Resumo curto</span>
+                        <textarea id="builder-review-summary" rows="3" placeholder="Resumo curto"></textarea>
+                      </label>
+                      <label class="field-block">
+                        <span>História geral</span>
+                        <textarea id="builder-review-lore" rows="5" placeholder="História geral"></textarea>
+                      </label>
+                      <label class="field-block">
+                        <span>Texto de capa</span>
+                        <textarea id="builder-review-cover-text" rows="3" placeholder="Texto de capa"></textarea>
+                      </label>
+                      <label class="field-block">
+                        <span>Imagem de capa / prompt</span>
+                        <input id="builder-review-cover-url" placeholder="Imagem real ou prompt de imagem">
+                      </label>
+                      <div class="two-col">
+                        <label class="field-block">
+                          <span>Status</span>
+                          <input id="builder-review-status" placeholder="draft">
+                        </label>
+                        <label class="field-block">
+                          <span>Sistema base</span>
+                          <input id="builder-review-system-base" placeholder="generic">
+                        </label>
+                      </div>
+                      <div class="two-col">
+                        <label class="field-block">
+                          <span>Mín. jogadores</span>
+                          <input id="builder-review-min-players" type="number" min="1" max="10">
+                        </label>
+                        <label class="field-block">
+                          <span>Máx. jogadores</span>
+                          <input id="builder-review-max-players" type="number" min="1" max="10">
+                        </label>
+                      </div>
+                      <label class="field-block">
+                        <span>Compatibilidade de ficha</span>
+                        <input id="builder-review-compatibility" placeholder="generic-flex">
+                      </label>
+                      <label class="field-block">
+                        <span>Tags</span>
+                        <input id="builder-review-tags" placeholder="tags, separadas, por, vírgula">
+                      </label>
+                      <label class="field-block">
+                        <span>Prompt mestre</span>
+                        <textarea id="builder-review-master-prompt" rows="4"></textarea>
+                      </label>
+                      <label class="field-block">
+                        <span>Contexto do mundo</span>
+                        <textarea id="builder-review-world-context" rows="3"></textarea>
+                      </label>
+                      <label class="field-block">
+                        <span>Regras narrativas</span>
+                        <textarea id="builder-review-rules" rows="3"></textarea>
+                      </label>
+                      <label class="field-block">
+                        <span>Estilo / tom</span>
+                        <input id="builder-review-tone" placeholder="Estilo / tom">
+                      </label>
+                      <label class="toggle-line"><input id="builder-review-published" type="checkbox"> Publicada</label>
+                      <div class="actions">
+                        <button type="button" class="btn ghost" data-builder-step-back="1">Voltar</button>
+                        <button type="submit" class="btn">Próximo passo</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <div class="builder-step-panel" data-builder-step-panel="3">
+                  <div class="card">
+                    <p class="eyebrow">Passo 3</p>
+                    <h3>Estrutura narrativa</h3>
+                    <p class="muted-copy">Edite blocos, adicione novos tipos e reorganize início, meio e final.</p>
+                    <div class="builder-actions">
+                      <button type="button" class="btn ghost" data-builder-add-node="start">Início</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="ato">Ato</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="evento">Evento</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="surpresa">Surpresa</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="boss">Boss</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="final">Final</button>
+                    </div>
+                    <div id="builder-structure-list" class="stack-list"></div>
+                    <div class="actions">
+                      <button type="button" class="btn ghost" data-builder-step-back="2">Voltar</button>
+                      <button type="button" class="btn" data-builder-step-next="4">Próximo passo</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="builder-step-panel" data-builder-step-panel="4">
+                  <div class="card">
+                    <p class="eyebrow">Passo 4</p>
+                    <h3>Decisões e impactos</h3>
+                    <p class="muted-copy">Ajuste decisões de grupo e pessoais, impactos e opções.</p>
+                    <div class="builder-actions">
+                      <button type="button" class="btn ghost" data-builder-add-node="decisao_grupo">Adicionar decisão de grupo</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="decisao_pessoal">Adicionar decisão pessoal</button>
+                    </div>
+                    <div id="builder-decision-list" class="stack-list"></div>
+                    <div class="actions">
+                      <button type="button" class="btn ghost" data-builder-step-back="3">Voltar</button>
+                      <button type="button" class="btn" data-builder-step-next="5">Próximo passo</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="builder-step-panel" data-builder-step-panel="5">
+                  <div class="card">
+                    <p class="eyebrow">Passo 5</p>
+                    <h3>Finalização</h3>
+                    <div id="builder-final-summary" class="stack-list"></div>
+                    <div class="actions">
+                      <button type="button" class="btn ghost" data-builder-step-back="4">Voltar</button>
+                      <button id="builder-save" type="button" class="btn">Salvar história</button>
+                      <button id="builder-publish" type="button" class="btn secondary">Publicar</button>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="builder-canvas-wrap">
                   <div id="builder-canvas" class="builder-canvas"></div>
                 </div>
                 <div class="builder-editor-grid">
                   <form id="builder-node-form" class="card form-grid">
                     <p class="eyebrow">Editor do bloco</p>
+                    <select id="builder-node-type">
+                      <option value="start">Início</option>
+                      <option value="ato">Ato</option>
+                      <option value="evento">Evento</option>
+                      <option value="decisao_grupo">Decisão em grupo</option>
+                      <option value="decisao_pessoal">Decisão pessoal</option>
+                      <option value="surpresa">Surpresa</option>
+                      <option value="boss">Boss</option>
+                      <option value="final">Final</option>
+                    </select>
                     <input id="builder-node-title" placeholder="Título do bloco">
                     <textarea id="builder-node-text" rows="3" placeholder="Descrição do bloco"></textarea>
                     <textarea id="builder-node-goal" rows="2" placeholder="Objetivo / transição"></textarea>
-                    <textarea id="builder-node-options" rows="4" placeholder="Opções, uma por linha: Título|Descrição|targetNodeId"></textarea>
-                    <input id="builder-node-image" placeholder="Imagem do bloco">
-                    <input id="builder-node-music" placeholder="Música do bloco">
+                    <textarea id="builder-node-options" rows="5" placeholder="Opções, uma por linha: Título|Descrição|targetNodeId"></textarea>
                     <button class="btn ghost" type="submit">Aplicar bloco</button>
                   </form>
                   <div id="builder-versions-list" class="stack-list"></div>

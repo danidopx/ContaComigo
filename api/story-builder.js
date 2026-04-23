@@ -31,6 +31,111 @@ function safeJsonFromText(text) {
   return null;
 }
 
+function slugify(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'historia-sem-titulo';
+}
+
+function normalizeTags(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return String(value || '').split(',').map(item => item.trim()).filter(Boolean);
+}
+
+function extractField(text, label) {
+  const regex = new RegExp(`${label}:\\s*(.*)`, 'i');
+  const match = String(text || '').match(regex);
+  return match?.[1]?.trim() || '';
+}
+
+function buildFallbackStoryForm(story, input = {}) {
+  const description = input.guidedDescription || input.premise || '';
+  const title = input.title || extractField(description, 'Título provisório') || story.title || 'Nova história';
+  const theme = extractField(description, 'Tema central');
+  const start = extractField(description, 'Como a história começa');
+  const conflicts = extractField(description, 'Possíveis conflitos');
+  const ending = extractField(description, 'Como imagina o final');
+  const players = extractField(description, 'Quantidade de jogadores');
+  const [minPlayersRaw, maxPlayersRaw] = players.split('-').map(item => Number(item.trim()));
+  return {
+    title,
+    slug: slugify(title),
+    summary: extractField(description, 'Resumo da premissa') || story.summary || 'Campanha gerada a partir de descrição guiada.',
+    lore_description: description || story.lore_description || '',
+    cover_text: start || 'Uma nova campanha pronta para ser explorada.',
+    cover_url: `Prompt de imagem: ${extractField(description, 'Ambientação') || title}`,
+    status: 'draft',
+    system_base: 'generic',
+    min_players: minPlayersRaw || story.min_players || 1,
+    max_players: maxPlayersRaw || maxPlayersRaw || story.max_players || 4,
+    character_compatibility: story.character_compatibility || 'generic-flex',
+    tags: normalizeTags([input.genre, theme, conflicts].filter(Boolean)),
+    master_prompt: `Conduza a campanha com foco em ${theme || 'coerência narrativa'} e progressão até um final claro.`,
+    world_context: extractField(description, 'Ambientação') || story.world_context || '',
+    narrative_rules: extractField(description, 'Restrições e observações') || story.narrative_rules || '',
+    tone_style: input.tone || extractField(description, 'Tom') || story.tone_style || '',
+    is_published: false
+  };
+}
+
+function buildFallbackGeneratedPayload(storyForm, input = {}) {
+  const beginning = extractField(input.guidedDescription || input.premise || '', 'Como a história começa') || 'Apresente o grupo e o gatilho inicial.';
+  const middle = extractField(input.guidedDescription || input.premise || '', 'Possíveis conflitos') || 'Escaladas, alianças e decisões importantes.';
+  const ending = extractField(input.guidedDescription || input.premise || '', 'Como imagina o final') || 'Um confronto final com consequência definitiva.';
+  return {
+    story: storyForm,
+    settings: {
+      narrativeModel: input.narrativeModel || extractField(input.guidedDescription || '', 'Tipo de jornada') || '3 atos',
+      genre: input.genre || '',
+      tone: storyForm.tone_style || '',
+      macro: {
+        inicio: beginning,
+        meio: middle,
+        final: ending
+      }
+    },
+    nodes: [
+      { id: 'start-1', type: 'start', data: { title: 'Início', text: beginning } },
+      { id: 'ato-1', type: 'ato', data: { title: 'Meio', text: middle } },
+      { id: 'decisao_grupo-1', type: 'decisao_grupo', data: { title: 'Decisão do grupo', text: 'Escolham um rumo central da campanha.', options: [{ id: 'opt-1', label: 'Seguir o plano principal', text: '', targetNodeId: 'boss-1' }, { id: 'opt-2', label: 'Assumir mais risco', text: '', targetNodeId: 'boss-1' }] } },
+      { id: 'boss-1', type: 'boss', data: { title: 'Conflito final', text: ending } },
+      { id: 'final-1', type: 'final', data: { title: 'Desfecho', text: ending } }
+    ],
+    edges: [
+      { source: 'start-1', target: 'ato-1' },
+      { source: 'ato-1', target: 'decisao_grupo-1' },
+      { source: 'decisao_grupo-1', target: 'boss-1' },
+      { source: 'boss-1', target: 'final-1' }
+    ]
+  };
+}
+
+function extractStoryPatch(settings = {}, fallbackStory = {}) {
+  const storyForm = settings.storyForm || {};
+  return {
+    title: storyForm.title || fallbackStory.title || 'Nova história',
+    slug: slugify(storyForm.slug || storyForm.title || fallbackStory.slug || fallbackStory.title || 'historia-sem-titulo'),
+    summary: storyForm.summary || fallbackStory.summary || '',
+    lore_description: storyForm.lore_description || fallbackStory.lore_description || '',
+    cover_text: storyForm.cover_text || fallbackStory.cover_text || '',
+    cover_url: storyForm.cover_url || fallbackStory.cover_url || '',
+    status: storyForm.status || fallbackStory.status || 'draft',
+    is_published: Boolean(storyForm.is_published ?? fallbackStory.is_published ?? false),
+    system_base: storyForm.system_base || fallbackStory.system_base || 'generic',
+    min_players: Number(storyForm.min_players || fallbackStory.min_players || 1),
+    max_players: Number(storyForm.max_players || fallbackStory.max_players || 4),
+    character_compatibility: storyForm.character_compatibility || fallbackStory.character_compatibility || 'generic-flex',
+    tags: normalizeTags(storyForm.tags || fallbackStory.tags || []),
+    master_prompt: storyForm.master_prompt || fallbackStory.master_prompt || '',
+    world_context: storyForm.world_context || fallbackStory.world_context || '',
+    narrative_rules: storyForm.narrative_rules || fallbackStory.narrative_rules || '',
+    tone_style: storyForm.tone_style || fallbackStory.tone_style || ''
+  };
+}
+
 export default async function handler(req, res) {
   if (handleOptions(req, res)) return;
 
@@ -103,8 +208,10 @@ async function saveDraft({ storyId, builderState, settings, chatPresets, mediaMe
   const normalizedState = normalizeBuilderState(builderState);
   const runtime = compileBuilderState(story, normalizedState);
   const nextDraftVersion = Number(story.draft_version || 0) + 1;
+  const storyPatch = extractStoryPatch(settings, story);
 
   await dbPatch('stories', { id: `eq.${storyId}` }, {
+    ...storyPatch,
     builder_state: normalizedState,
     builder_settings: settings || story.builder_settings || {},
     builder_runtime: runtime,
@@ -145,13 +252,41 @@ async function generateBuilderBase({ storyId, input, settings, chatPresets, medi
   const finalPrompt = `${basePrompt}
 
 Tema: ${input?.title || story.title}
-Premissa: ${input?.premise || story.summary || ''}
+Premissa estruturada: ${input?.guidedDescription || input?.premise || story.summary || ''}
 Genero: ${input?.genre || settings?.genre || 'fantasia'}
 Tom: ${input?.tone || settings?.tone || 'dramatico'}
 Modelo: ${input?.narrativeModel || settings?.narrativeModel || '3 atos'}
 
 Responda somente JSON:
 {
+  "story": {
+    "title": "",
+    "slug": "",
+    "summary": "",
+    "lore_description": "",
+    "cover_text": "",
+    "cover_url": "",
+    "status": "draft",
+    "system_base": "generic",
+    "min_players": 1,
+    "max_players": 4,
+    "character_compatibility": "generic-flex",
+    "tags": [],
+    "master_prompt": "",
+    "world_context": "",
+    "narrative_rules": "",
+    "tone_style": ""
+  },
+  "settings": {
+    "narrativeModel": "",
+    "genre": "",
+    "tone": "",
+    "macro": {
+      "inicio": "",
+      "meio": "",
+      "final": ""
+    }
+  },
   "nodes": [
     { "id": "start-1", "type": "start", "data": { "title": "", "text": "" } }
   ],
@@ -160,25 +295,36 @@ Responda somente JSON:
   ]
 }`;
 
-  const generation = await generateWithGemini({
-    prompt: finalPrompt,
-    modelo: prompts[0]?.model_name || 'gemini-2.5-flash'
-  });
-  const rawText = extractText(generation.payload);
-  const parsed = safeJsonFromText(rawText) || {};
-  const generatedState = buildInitialBuilderFromGeneration(input, parsed);
+  let rawText = '';
+  let parsed = null;
+  try {
+    const generation = await generateWithGemini({
+      prompt: finalPrompt,
+      modelo: prompts[0]?.model_name || 'gemini-2.5-flash'
+    });
+    rawText = extractText(generation.payload);
+    parsed = safeJsonFromText(rawText);
+  } catch {}
+  const storyForm = parsed?.story || buildFallbackStoryForm(story, input);
+  const generatedEnvelope = parsed || buildFallbackGeneratedPayload(storyForm, input);
+  const generatedState = buildInitialBuilderFromGeneration(input, generatedEnvelope);
   const runtime = compileBuilderState(story, generatedState);
+  const storyPatch = extractStoryPatch({ storyForm }, story);
 
   await dbPatch('stories', { id: `eq.${storyId}` }, {
+    ...storyPatch,
     builder_state: generatedState,
     builder_settings: {
       ...(story.builder_settings || {}),
       ...(settings || {}),
-      title: input?.title || story.title,
-      premise: input?.premise || story.summary || '',
-      genre: input?.genre || settings?.genre || '',
-      tone: input?.tone || settings?.tone || '',
-      narrativeModel: input?.narrativeModel || settings?.narrativeModel || ''
+      ...(generatedEnvelope.settings || {}),
+      title: storyPatch.title,
+      premise: input?.guidedDescription || input?.premise || storyPatch.lore_description || '',
+      genre: generatedEnvelope.settings?.genre || input?.genre || settings?.genre || '',
+      tone: generatedEnvelope.settings?.tone || input?.tone || settings?.tone || '',
+      narrativeModel: generatedEnvelope.settings?.narrativeModel || input?.narrativeModel || settings?.narrativeModel || '',
+      guidedDescription: input?.guidedDescription || input?.premise || '',
+      storyForm
     },
     builder_runtime: runtime,
     chat_presets: Array.isArray(chatPresets) ? chatPresets : story.chat_presets || [],
@@ -189,8 +335,10 @@ Responda somente JSON:
   return {
     ok: true,
     rawText,
+    storyForm,
     builderState: generatedState,
-    runtime
+    runtime,
+    warning: parsed ? '' : 'A IA falhou ou respondeu parcialmente. O fluxo seguiu com fallback editável.'
   };
 }
 
@@ -210,10 +358,12 @@ async function publishBuilder({ storyId, builderState, settings, chatPresets, me
 
   const normalizedState = normalizeBuilderState(builderState || story.builder_state || createDefaultBuilderState());
   const runtime = compileBuilderState(story, normalizedState);
+  const storyPatch = extractStoryPatch(settings, story);
   await syncPublishedStoryData(storyId, runtime);
 
   const publishedVersion = Number(story.draft_version || 1);
   await dbPatch('stories', { id: `eq.${storyId}` }, {
+    ...storyPatch,
     builder_state: normalizedState,
     builder_settings: settings || story.builder_settings || {},
     builder_runtime: runtime,

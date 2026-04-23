@@ -1,11 +1,34 @@
 import { escapeHtml, formatDate } from './ui.js';
 
+const STEP_IDS = ['guided', 'review', 'structure', 'decisions', 'final'];
+const STEP_TITLES = ['Passo 1', 'Passo 2', 'Passo 3', 'Passo 4', 'Passo 5'];
+const NODE_TYPES = ['start', 'ato', 'evento', 'decisao_grupo', 'decisao_pessoal', 'surpresa', 'boss', 'final'];
+const GUIDED_TEMPLATE = `Título provisório:
+Gênero:
+Tom:
+Ambientação:
+Tema central:
+Tipo de jornada:
+Quantidade de jogadores:
+Faixa de duração:
+Resumo da premissa:
+Como a história começa:
+Possíveis conflitos:
+Tipo de antagonista:
+Possíveis reviravoltas:
+Como imagina o final:
+Referências opcionais:
+Restrições e observações:`;
+
 const builderState = {
   stories: [],
   storyId: '',
+  currentStep: 1,
   selectedNodeId: '',
-  connectorSourceId: '',
   payload: {
+    story: null,
+    storyForm: {},
+    guidedDescription: GUIDED_TEMPLATE,
     builderState: { nodes: [], edges: [] },
     settings: {},
     chatPresets: [],
@@ -15,75 +38,12 @@ const builderState = {
 };
 
 export function initStoryBuilder({ onLoadStory, onGenerateBase, onSaveBuilder, onPublishBuilder }) {
-  const storySelect = document.getElementById('builder-story-select');
-  const generateForm = document.getElementById('builder-generate-form');
-  const nodeForm = document.getElementById('builder-node-form');
-  const addButtons = [...document.querySelectorAll('[data-builder-add-node]')];
-  const connectButton = document.getElementById('builder-connect-node');
-  const removeButton = document.getElementById('builder-remove-node');
-  const resetEdgesButton = document.getElementById('builder-reset-edges');
-  const saveButton = document.getElementById('builder-save');
-  const publishButton = document.getElementById('builder-publish');
-
-  storySelect?.addEventListener('change', async event => {
-    builderState.storyId = event.currentTarget.value;
-    syncGuideFromStory(builderState.stories.find(item => item.id === builderState.storyId));
-    if (builderState.storyId) await onLoadStory(builderState.storyId);
-  });
-
-  generateForm?.addEventListener('submit', async event => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    await onGenerateBase(builderState.storyId, {
-      title: formData.get('title'),
-      premise: formData.get('premise'),
-      genre: formData.get('genre'),
-      tone: formData.get('tone'),
-      narrativeModel: formData.get('narrativeModel')
-    }, collectBuilderMeta());
-  });
-
-  nodeForm?.addEventListener('submit', event => {
-    event.preventDefault();
-    applyNodeEditor();
-    renderBuilderCanvas();
-  });
-
-  addButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      appendNode(button.dataset.builderAddNode);
-      renderBuilderCanvas();
-    });
-  });
-
-  connectButton?.addEventListener('click', () => {
-    if (!builderState.selectedNodeId) return;
-    builderState.connectorSourceId = builderState.selectedNodeId;
-    renderBuilderCanvas();
-  });
-
-  removeButton?.addEventListener('click', () => {
-    if (!builderState.selectedNodeId) return;
-    removeSelectedNode();
-    renderBuilderCanvas();
-  });
-
-  resetEdgesButton?.addEventListener('click', () => {
-    builderState.payload.builderState.edges = [];
-    renderBuilderCanvas();
-  });
-
-  saveButton?.addEventListener('click', async () => {
-    applyNodeEditor();
-    await onSaveBuilder(builderState.storyId, collectBuilderMeta());
-  });
-
-  publishButton?.addEventListener('click', async () => {
-    applyNodeEditor();
-    await onPublishBuilder(builderState.storyId, collectBuilderMeta());
-  });
-
+  bindCoreActions({ onLoadStory, onGenerateBase, onSaveBuilder, onPublishBuilder });
+  renderStepNavigation();
   renderBuilderCanvas();
+  renderStructureList();
+  renderDecisionList();
+  renderFinalSummary();
 }
 
 export function setBuilderStories(stories) {
@@ -96,87 +56,374 @@ export function setBuilderStories(stories) {
 
   if (!builderState.storyId && builderState.stories[0]) {
     builderState.storyId = builderState.stories[0].id;
-    select.value = builderState.storyId;
-    syncGuideFromStory(builderState.stories[0]);
-  } else {
-    select.value = builderState.storyId;
   }
+
+  select.value = builderState.storyId;
+  hydrateFromStory(builderState.stories.find(item => item.id === builderState.storyId));
 }
 
 export function loadBuilderPayload(payload) {
-  builderState.payload = {
-    builderState: payload.builderState || { nodes: [], edges: [] },
-    settings: payload.settings || {},
-    chatPresets: payload.chatPresets || [],
-    mediaMetadata: payload.mediaMetadata || {},
-    versions: payload.versions || []
-  };
-  builderState.storyId = payload.story?.id || builderState.storyId;
+  const story = payload.story || builderState.stories.find(item => item.id === builderState.storyId) || null;
+  builderState.storyId = story?.id || builderState.storyId;
+  builderState.payload.story = story;
+  builderState.payload.settings = payload.settings || {};
+  builderState.payload.chatPresets = Array.isArray(payload.chatPresets) ? payload.chatPresets : [];
+  builderState.payload.mediaMetadata = payload.mediaMetadata || {};
+  builderState.payload.versions = payload.versions || [];
+  builderState.payload.builderState = payload.builderState || { nodes: [], edges: [] };
+  builderState.payload.storyForm = buildStoryForm(story, payload.settings || {});
+  builderState.payload.guidedDescription = payload.settings?.guidedDescription || GUIDED_TEMPLATE;
   builderState.selectedNodeId = builderState.payload.builderState.nodes[0]?.id || '';
-  builderState.connectorSourceId = '';
 
-  hydrateBuilderForms();
+  loadPersistedDraft();
+  hydrateAllBuilderForms();
+  renderStepNavigation();
   renderBuilderCanvas();
+  renderStructureList();
+  renderDecisionList();
   renderBuilderVersions();
-  syncGuideFromStory(payload.story || builderState.stories.find(item => item.id === builderState.storyId));
+  renderFinalSummary();
 }
 
-export function collectBuilderMeta() {
-  const settings = {
-    title: document.getElementById('builder-title')?.value || '',
-    premise: document.getElementById('builder-premise')?.value || '',
-    genre: document.getElementById('builder-genre')?.value || '',
-    tone: document.getElementById('builder-tone')?.value || '',
-    narrativeModel: document.getElementById('builder-model')?.value || ''
-  };
-  const chatPresets = splitLines(document.getElementById('builder-chat-presets')?.value || '');
-  const mediaMetadata = {
-    image: document.getElementById('builder-media-image')?.value || '',
-    music: document.getElementById('builder-media-music')?.value || ''
-  };
+function bindCoreActions({ onLoadStory, onGenerateBase, onSaveBuilder, onPublishBuilder }) {
+  const storySelect = document.getElementById('builder-story-select');
+  const guidedForm = document.getElementById('builder-guided-form');
+  const reviewForm = document.getElementById('builder-review-form');
+  const nodeForm = document.getElementById('builder-node-form');
 
-  builderState.payload.settings = settings;
-  builderState.payload.chatPresets = chatPresets;
-  builderState.payload.mediaMetadata = mediaMetadata;
+  storySelect?.addEventListener('change', async event => {
+    builderState.storyId = event.currentTarget.value;
+    hydrateFromStory(builderState.stories.find(item => item.id === builderState.storyId));
+    if (builderState.storyId) await onLoadStory(builderState.storyId);
+  });
 
+  guidedForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!builderState.storyId) return;
+    const description = document.getElementById('builder-guided-description').value.trim();
+    builderState.payload.guidedDescription = description || GUIDED_TEMPLATE;
+    persistDraft();
+    await onGenerateBase(builderState.storyId, buildGuidedInput(), collectBuilderMeta());
+    goToStep(2);
+  });
+
+  reviewForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    applyReviewForm();
+    goToStep(3);
+  });
+
+  nodeForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    applySelectedNodeFields();
+    renderBuilderCanvas();
+    renderStructureList();
+    renderDecisionList();
+    renderFinalSummary();
+    persistDraft();
+  });
+
+  document.querySelectorAll('[data-builder-step-goto]').forEach(button => {
+    button.addEventListener('click', () => goToStep(Number(button.dataset.builderStepGoto)));
+  });
+
+  document.querySelectorAll('[data-builder-step-next]').forEach(button => {
+    button.addEventListener('click', () => {
+      const nextStep = Number(button.dataset.builderStepNext);
+      syncStepBeforeMove();
+      goToStep(nextStep);
+    });
+  });
+
+  document.querySelectorAll('[data-builder-step-back]').forEach(button => {
+    button.addEventListener('click', () => {
+      const previousStep = Number(button.dataset.builderStepBack);
+      syncStepBeforeMove();
+      goToStep(previousStep);
+    });
+  });
+
+  document.querySelectorAll('[data-builder-add-node]').forEach(button => {
+    button.addEventListener('click', () => {
+      appendNode(button.dataset.builderAddNode);
+      renderBuilderCanvas();
+      renderStructureList();
+      renderDecisionList();
+      renderFinalSummary();
+      persistDraft();
+    });
+  });
+
+  document.getElementById('builder-save')?.addEventListener('click', async () => {
+    syncAllStepData();
+    await onSaveBuilder(builderState.storyId, collectBuilderMeta());
+  });
+
+  document.getElementById('builder-publish')?.addEventListener('click', async () => {
+    syncAllStepData();
+    await onPublishBuilder(builderState.storyId, collectBuilderMeta());
+  });
+
+  document.getElementById('builder-guided-fill-template')?.addEventListener('click', () => {
+    const field = document.getElementById('builder-guided-description');
+    field.value = GUIDED_TEMPLATE;
+  });
+
+  document.getElementById('builder-add-group-decision')?.addEventListener('click', () => appendNode('decisao_grupo'));
+  document.getElementById('builder-add-personal-decision')?.addEventListener('click', () => appendNode('decisao_pessoal'));
+}
+
+function buildGuidedInput() {
+  const story = builderState.stories.find(item => item.id === builderState.storyId) || {};
+  const description = document.getElementById('builder-guided-description').value.trim() || GUIDED_TEMPLATE;
+  return {
+    title: extractStructuredField(description, 'Título provisório') || story.title || '',
+    premise: description,
+    genre: extractStructuredField(description, 'Gênero') || '',
+    tone: extractStructuredField(description, 'Tom') || story.tone_style || '',
+    narrativeModel: extractStructuredField(description, 'Tipo de jornada') || '',
+    guidedDescription: description
+  };
+}
+
+function collectBuilderMeta() {
+  syncAllStepData();
   return {
     builderState: builderState.payload.builderState,
-    settings,
-    chatPresets,
-    mediaMetadata
+    settings: {
+      ...builderState.payload.settings,
+      guidedDescription: builderState.payload.guidedDescription,
+      storyForm: builderState.payload.storyForm,
+      structureSummary: buildStructureSummary(),
+      title: builderState.payload.storyForm.title || '',
+      premise: builderState.payload.storyForm.lore_description || builderState.payload.storyForm.summary || '',
+      genre: builderState.payload.storyForm.genre || '',
+      tone: builderState.payload.storyForm.tone_style || '',
+      narrativeModel: builderState.payload.settings.narrativeModel || ''
+    },
+    chatPresets: builderState.payload.chatPresets,
+    mediaMetadata: builderState.payload.mediaMetadata
   };
 }
 
-function hydrateBuilderForms() {
-  const currentStory = builderState.stories.find(item => item.id === builderState.storyId);
-  document.getElementById('builder-title').value = builderState.payload.settings.title || currentStory?.title || '';
-  document.getElementById('builder-premise').value = builderState.payload.settings.premise || currentStory?.lore_description || currentStory?.summary || '';
-  document.getElementById('builder-genre').value = builderState.payload.settings.genre || '';
-  document.getElementById('builder-tone').value = builderState.payload.settings.tone || currentStory?.tone_style || '';
-  document.getElementById('builder-model').value = builderState.payload.settings.narrativeModel || '';
+function hydrateAllBuilderForms() {
+  const form = builderState.payload.storyForm;
+  document.getElementById('builder-guided-description').value = builderState.payload.guidedDescription || GUIDED_TEMPLATE;
+  document.getElementById('builder-review-title').value = form.title || '';
+  document.getElementById('builder-review-slug').value = form.slug || '';
+  document.getElementById('builder-review-summary').value = form.summary || '';
+  document.getElementById('builder-review-lore').value = form.lore_description || '';
+  document.getElementById('builder-review-cover-text').value = form.cover_text || '';
+  document.getElementById('builder-review-cover-url').value = form.cover_url || '';
+  document.getElementById('builder-review-status').value = form.status || 'draft';
+  document.getElementById('builder-review-system-base').value = form.system_base || 'generic';
+  document.getElementById('builder-review-min-players').value = form.min_players || 1;
+  document.getElementById('builder-review-max-players').value = form.max_players || 4;
+  document.getElementById('builder-review-compatibility').value = form.character_compatibility || 'generic-flex';
+  document.getElementById('builder-review-tags').value = Array.isArray(form.tags) ? form.tags.join(', ') : '';
+  document.getElementById('builder-review-master-prompt').value = form.master_prompt || '';
+  document.getElementById('builder-review-world-context').value = form.world_context || '';
+  document.getElementById('builder-review-rules').value = form.narrative_rules || '';
+  document.getElementById('builder-review-tone').value = form.tone_style || '';
+  document.getElementById('builder-review-published').checked = Boolean(form.is_published);
   document.getElementById('builder-chat-presets').value = (builderState.payload.chatPresets || []).join('\n');
   document.getElementById('builder-media-image').value = builderState.payload.mediaMetadata.image || '';
   document.getElementById('builder-media-music').value = builderState.payload.mediaMetadata.music || '';
-  hydrateNodeEditor();
+  hydrateSelectedNodeEditor();
 }
 
-function syncGuideFromStory(story) {
+function hydrateFromStory(story) {
   if (!story) return;
-  const titleInput = document.getElementById('builder-title');
-  const premiseInput = document.getElementById('builder-premise');
-  const toneInput = document.getElementById('builder-tone');
-  if (titleInput && !titleInput.value) titleInput.value = story.title || '';
-  if (premiseInput && !premiseInput.value) premiseInput.value = story.lore_description || story.summary || '';
-  if (toneInput && !toneInput.value) toneInput.value = story.tone_style || '';
+  builderState.payload.story = story;
+  builderState.payload.storyForm = buildStoryForm(story, builderState.payload.settings || {});
+  if (!builderState.payload.guidedDescription || builderState.payload.guidedDescription === GUIDED_TEMPLATE) {
+    builderState.payload.guidedDescription = buildGuidedDescriptionFromStory(story);
+  }
+  hydrateAllBuilderForms();
+  renderFinalSummary();
+  persistDraft();
+}
+
+function buildStoryForm(story, settings) {
+  const storyForm = settings?.storyForm || {};
+  return {
+    id: story?.id || '',
+    title: storyForm.title || story?.title || '',
+    slug: storyForm.slug || story?.slug || '',
+    summary: storyForm.summary || story?.summary || '',
+    lore_description: storyForm.lore_description || story?.lore_description || '',
+    cover_text: storyForm.cover_text || story?.cover_text || '',
+    cover_url: storyForm.cover_url || story?.cover_url || '',
+    status: storyForm.status || story?.status || 'draft',
+    system_base: storyForm.system_base || story?.system_base || 'generic',
+    min_players: Number(storyForm.min_players || story?.min_players || 1),
+    max_players: Number(storyForm.max_players || story?.max_players || 4),
+    character_compatibility: storyForm.character_compatibility || story?.character_compatibility || 'generic-flex',
+    tags: normalizeTags(storyForm.tags || story?.tags || []),
+    master_prompt: storyForm.master_prompt || story?.master_prompt || '',
+    world_context: storyForm.world_context || story?.world_context || '',
+    narrative_rules: storyForm.narrative_rules || story?.narrative_rules || '',
+    tone_style: storyForm.tone_style || story?.tone_style || '',
+    is_published: storyForm.is_published ?? story?.is_published ?? false,
+    genre: storyForm.genre || settings?.genre || '',
+    prompt_cover: storyForm.prompt_cover || ''
+  };
+}
+
+function buildGuidedDescriptionFromStory(story) {
+  return `Título provisório: ${story.title || ''}
+Gênero: 
+Tom: ${story.tone_style || ''}
+Ambientação: ${story.world_context || ''}
+Tema central: 
+Tipo de jornada: ${story.builder_settings?.narrativeModel || ''}
+Quantidade de jogadores: ${story.min_players || 1}-${story.max_players || 4}
+Faixa de duração: 
+Resumo da premissa: ${story.lore_description || story.summary || ''}
+Como a história começa: ${story.cover_text || ''}
+Possíveis conflitos: 
+Tipo de antagonista: 
+Possíveis reviravoltas: 
+Como imagina o final: 
+Referências opcionais: 
+Restrições e observações: ${story.narrative_rules || ''}`;
+}
+
+function renderStepNavigation() {
+  document.querySelectorAll('[data-builder-step-index]').forEach((node, index) => {
+    const stepNumber = index + 1;
+    node.classList.toggle('active', stepNumber === builderState.currentStep);
+    node.classList.toggle('done', stepNumber < builderState.currentStep);
+  });
+
+  document.querySelectorAll('[data-builder-step-panel]').forEach(panel => {
+    panel.classList.toggle('active', Number(panel.dataset.builderStepPanel) === builderState.currentStep);
+  });
+}
+
+function goToStep(step) {
+  builderState.currentStep = Math.min(5, Math.max(1, step));
+  renderStepNavigation();
+  renderFinalSummary();
+  persistDraft();
+}
+
+function syncStepBeforeMove() {
+  if (builderState.currentStep === 1) {
+    builderState.payload.guidedDescription = document.getElementById('builder-guided-description').value.trim() || GUIDED_TEMPLATE;
+  }
+  if (builderState.currentStep === 2) applyReviewForm();
+  if (builderState.currentStep === 3 || builderState.currentStep === 4) applySelectedNodeFields();
+}
+
+function syncAllStepData() {
+  builderState.payload.guidedDescription = document.getElementById('builder-guided-description').value.trim() || GUIDED_TEMPLATE;
+  applyReviewForm();
+  applySelectedNodeFields();
+  builderState.payload.chatPresets = splitLines(document.getElementById('builder-chat-presets').value || '');
+  builderState.payload.mediaMetadata = {
+    image: document.getElementById('builder-media-image').value || '',
+    music: document.getElementById('builder-media-music').value || ''
+  };
+  if (!builderState.payload.storyForm.slug) {
+    builderState.payload.storyForm.slug = slugify(builderState.payload.storyForm.title || 'historia-sem-titulo');
+  }
+  persistDraft();
+}
+
+function applyReviewForm() {
+  builderState.payload.storyForm = {
+    ...builderState.payload.storyForm,
+    title: document.getElementById('builder-review-title').value.trim(),
+    slug: slugify(document.getElementById('builder-review-slug').value.trim() || document.getElementById('builder-review-title').value.trim()),
+    summary: document.getElementById('builder-review-summary').value.trim(),
+    lore_description: document.getElementById('builder-review-lore').value.trim(),
+    cover_text: document.getElementById('builder-review-cover-text').value.trim(),
+    cover_url: document.getElementById('builder-review-cover-url').value.trim(),
+    status: document.getElementById('builder-review-status').value.trim() || 'draft',
+    system_base: document.getElementById('builder-review-system-base').value.trim() || 'generic',
+    min_players: Number(document.getElementById('builder-review-min-players').value || 1),
+    max_players: Number(document.getElementById('builder-review-max-players').value || 4),
+    character_compatibility: document.getElementById('builder-review-compatibility').value.trim() || 'generic-flex',
+    tags: normalizeTags(document.getElementById('builder-review-tags').value),
+    master_prompt: document.getElementById('builder-review-master-prompt').value.trim(),
+    world_context: document.getElementById('builder-review-world-context').value.trim(),
+    narrative_rules: document.getElementById('builder-review-rules').value.trim(),
+    tone_style: document.getElementById('builder-review-tone').value.trim(),
+    is_published: document.getElementById('builder-review-published').checked
+  };
+}
+
+function renderStructureList() {
+  const container = document.getElementById('builder-structure-list');
+  if (!container) return;
+  const nodes = builderState.payload.builderState.nodes || [];
+  container.innerHTML = nodes.length === 0
+    ? '<div class="stack-item">Nenhuma estrutura gerada ainda.</div>'
+    : nodes.map((node, index) => `
+      <article class="stack-item structure-item ${node.id === builderState.selectedNodeId ? 'active' : ''}">
+        <div class="structure-item-head">
+          <strong>${escapeHtml(node.data?.title || labelByType(node.type))}</strong>
+          <span>${escapeHtml(node.type)}</span>
+        </div>
+        <p>${escapeHtml(node.data?.text || 'Sem descrição.')}</p>
+        <div class="actions">
+          <button type="button" class="btn ghost" data-structure-select="${node.id}">Editar</button>
+          <button type="button" class="btn ghost" data-structure-up="${node.id}" ${index === 0 ? 'disabled' : ''}>Subir</button>
+          <button type="button" class="btn ghost" data-structure-down="${node.id}" ${index === nodes.length - 1 ? 'disabled' : ''}>Descer</button>
+          <button type="button" class="btn ghost" data-structure-remove="${node.id}">Remover</button>
+        </div>
+      </article>
+    `).join('');
+
+  container.querySelectorAll('[data-structure-select]').forEach(button => {
+    button.addEventListener('click', () => {
+      builderState.selectedNodeId = button.dataset.structureSelect;
+      hydrateSelectedNodeEditor();
+      renderStructureList();
+      renderDecisionList();
+    });
+  });
+  container.querySelectorAll('[data-structure-up]').forEach(button => button.addEventListener('click', () => moveNode(button.dataset.structureUp, -1)));
+  container.querySelectorAll('[data-structure-down]').forEach(button => button.addEventListener('click', () => moveNode(button.dataset.structureDown, 1)));
+  container.querySelectorAll('[data-structure-remove]').forEach(button => button.addEventListener('click', () => {
+    removeNode(button.dataset.structureRemove);
+  }));
+}
+
+function renderDecisionList() {
+  const container = document.getElementById('builder-decision-list');
+  if (!container) return;
+  const decisions = (builderState.payload.builderState.nodes || []).filter(node => node.type === 'decisao_grupo' || node.type === 'decisao_pessoal');
+  container.innerHTML = decisions.length === 0
+    ? '<div class="stack-item">Nenhuma decisão configurada ainda.</div>'
+    : decisions.map(node => `
+      <article class="stack-item structure-item ${node.id === builderState.selectedNodeId ? 'active' : ''}">
+        <div class="structure-item-head">
+          <strong>${escapeHtml(node.data?.title || labelByType(node.type))}</strong>
+          <span>${node.type === 'decisao_grupo' ? 'Grupo' : 'Pessoal'}</span>
+        </div>
+        <p>${escapeHtml(node.data?.text || 'Sem prompt narrativo.')}</p>
+        <p>Opções: ${(node.data?.options || []).length}</p>
+        <div class="actions">
+          <button type="button" class="btn ghost" data-decision-edit="${node.id}">Editar decisão</button>
+        </div>
+      </article>
+    `).join('');
+
+  container.querySelectorAll('[data-decision-edit]').forEach(button => button.addEventListener('click', () => {
+    builderState.selectedNodeId = button.dataset.decisionEdit;
+    hydrateSelectedNodeEditor();
+    renderDecisionList();
+    renderStructureList();
+  }));
 }
 
 function renderBuilderCanvas() {
   const surface = document.getElementById('builder-canvas');
   if (!surface) return;
-  const state = builderState.payload.builderState || { nodes: [], edges: [] };
-  const nodes = state.nodes || [];
-  const edges = state.edges || [];
-
+  const nodes = builderState.payload.builderState.nodes || [];
+  const edges = ensureEdges();
   const maxX = Math.max(1200, ...nodes.map(node => node.position?.x || 0)) + 360;
   const maxY = Math.max(500, ...nodes.map(node => node.position?.y || 0)) + 220;
 
@@ -194,59 +441,136 @@ function renderBuilderCanvas() {
         return `<path d="M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}" />`;
       }).join('')}
     </svg>
-    ${nodes.map(node => {
-      const laneClass = laneClassByType(node.type);
-      const selected = node.id === builderState.selectedNodeId ? ' selected' : '';
-      const connecting = node.id === builderState.connectorSourceId ? ' connecting' : '';
-      return `
-        <article class="builder-node ${laneClass}${selected}${connecting}" data-builder-node="${node.id}" style="left:${node.position?.x || 0}px;top:${node.position?.y || 0}px;">
-          <header class="builder-node-head">
-            <span>${escapeHtml(node.type.replace('_', ' '))}</span>
-            <button type="button" class="builder-link-btn" data-builder-node-action="select" data-builder-node-id="${node.id}">Editar</button>
-          </header>
-          <strong>${escapeHtml(node.data?.title || 'Bloco')}</strong>
-          <p>${escapeHtml(node.data?.text || 'Sem descrição.')}</p>
-        </article>
-      `;
-    }).join('')}
+    ${nodes.map(node => `
+      <article class="builder-node ${laneClassByType(node.type)}${node.id === builderState.selectedNodeId ? ' selected' : ''}" data-builder-node="${node.id}" style="left:${node.position?.x || 0}px;top:${node.position?.y || 0}px;">
+        <header class="builder-node-head">
+          <span>${escapeHtml(node.type.replace('_', ' '))}</span>
+          <button type="button" class="builder-link-btn" data-builder-node-select="${node.id}">Editar</button>
+        </header>
+        <strong>${escapeHtml(node.data?.title || labelByType(node.type))}</strong>
+        <p>${escapeHtml(node.data?.text || 'Sem descrição.')}</p>
+      </article>
+    `).join('')}
   `;
-
   surface.style.minWidth = `${maxX}px`;
   surface.style.minHeight = `${maxY}px`;
 
-  surface.querySelectorAll('[data-builder-node]').forEach(node => {
-    node.addEventListener('click', event => {
-      if (event.target.closest('[data-builder-node-action="select"]')) return;
-      handleNodeClick(node.dataset.builderNode);
-    });
-    makeNodeDraggable(node);
-  });
-
-  surface.querySelectorAll('[data-builder-node-action="select"]').forEach(button => {
-    button.addEventListener('click', event => {
-      event.stopPropagation();
-      handleNodeClick(button.dataset.builderNodeId);
-    });
-  });
-
-  hydrateNodeEditor();
-  renderBuilderSummary();
+  surface.querySelectorAll('[data-builder-node-select]').forEach(button => button.addEventListener('click', () => {
+    builderState.selectedNodeId = button.dataset.builderNodeSelect;
+    hydrateSelectedNodeEditor();
+    renderStructureList();
+    renderDecisionList();
+    renderBuilderCanvas();
+  }));
 }
 
-function renderBuilderSummary() {
-  const runtime = estimateRuntime();
-  const container = document.getElementById('builder-runtime-summary');
-  if (!container) return;
-  container.innerHTML = `
-    <article class="stack-item">
-      <h4>Blocos</h4>
-      <p>${runtime.chapterCount} capitulos / ${runtime.decisionCount} decisoes</p>
-    </article>
-    <article class="stack-item">
-      <h4>Fluxo</h4>
-      <p>${escapeHtml(runtime.sequence || 'Monte um fluxo inicial no canvas.')}</p>
-    </article>
-  `;
+function hydrateSelectedNodeEditor() {
+  const node = getSelectedNode();
+  const form = document.getElementById('builder-node-form');
+  form?.classList.toggle('muted-panel', !node);
+  document.getElementById('builder-node-type').value = node?.type || 'evento';
+  document.getElementById('builder-node-title').value = node?.data?.title || '';
+  document.getElementById('builder-node-text').value = node?.data?.text || '';
+  document.getElementById('builder-node-goal').value = node?.data?.goal || '';
+  document.getElementById('builder-node-options').value = (node?.data?.options || []).map(option => [option.label, option.text, option.targetNodeId].filter(Boolean).join('|')).join('\n');
+}
+
+function applySelectedNodeFields() {
+  const node = getSelectedNode();
+  if (!node) return;
+  node.type = document.getElementById('builder-node-type').value || node.type;
+  node.data.title = document.getElementById('builder-node-title').value || '';
+  node.data.text = document.getElementById('builder-node-text').value || '';
+  node.data.goal = document.getElementById('builder-node-goal').value || '';
+  node.data.options = splitLines(document.getElementById('builder-node-options').value || '').map((line, index) => {
+    const [label, text, targetNodeId] = line.split('|').map(item => item.trim());
+    return {
+      id: `${node.id}-opt-${index + 1}`,
+      label: label || `Opcao ${index + 1}`,
+      text: text || '',
+      targetNodeId: targetNodeId || ''
+    };
+  });
+}
+
+function appendNode(type) {
+  const index = builderState.payload.builderState.nodes.length;
+  const id = `${type}-${Date.now()}`;
+  builderState.payload.builderState.nodes.push({
+    id,
+    type,
+    position: { x: 100 + index * 200, y: 120 + (index % 3) * 140 },
+    data: {
+      title: labelByType(type),
+      text: '',
+      goal: '',
+      options: type.includes('decisao')
+        ? [
+            { id: `${id}-opt-1`, label: 'Opção 1', text: '', targetNodeId: '' },
+            { id: `${id}-opt-2`, label: 'Opção 2', text: '', targetNodeId: '' }
+          ]
+        : []
+    }
+  });
+  builderState.selectedNodeId = id;
+  ensureEdges();
+  hydrateSelectedNodeEditor();
+  renderBuilderCanvas();
+  renderStructureList();
+  renderDecisionList();
+  renderFinalSummary();
+  persistDraft();
+}
+
+function moveNode(nodeId, direction) {
+  const nodes = builderState.payload.builderState.nodes;
+  const index = nodes.findIndex(node => node.id === nodeId);
+  if (index < 0) return;
+  const targetIndex = index + direction;
+  if (targetIndex < 0 || targetIndex >= nodes.length) return;
+  [nodes[index], nodes[targetIndex]] = [nodes[targetIndex], nodes[index]];
+  updateNodePositions();
+  ensureEdges();
+  renderBuilderCanvas();
+  renderStructureList();
+  renderDecisionList();
+  renderFinalSummary();
+  persistDraft();
+}
+
+function removeNode(nodeId) {
+  builderState.payload.builderState.nodes = builderState.payload.builderState.nodes.filter(node => node.id !== nodeId);
+  builderState.payload.builderState.edges = (builderState.payload.builderState.edges || []).filter(edge => edge.source !== nodeId && edge.target !== nodeId);
+  builderState.selectedNodeId = builderState.payload.builderState.nodes[0]?.id || '';
+  updateNodePositions();
+  ensureEdges();
+  hydrateSelectedNodeEditor();
+  renderBuilderCanvas();
+  renderStructureList();
+  renderDecisionList();
+  renderFinalSummary();
+  persistDraft();
+}
+
+function ensureEdges() {
+  const nodes = builderState.payload.builderState.nodes || [];
+  const edges = [];
+  for (let index = 0; index < nodes.length - 1; index += 1) {
+    edges.push({
+      id: `edge-${index + 1}`,
+      source: nodes[index].id,
+      target: nodes[index + 1].id,
+      kind: 'flow'
+    });
+  }
+  builderState.payload.builderState.edges = edges;
+  return edges;
+}
+
+function updateNodePositions() {
+  builderState.payload.builderState.nodes.forEach((node, index) => {
+    node.position = { x: 100 + index * 200, y: 120 + (index % 3) * 140 };
+  });
 }
 
 function renderBuilderVersions() {
@@ -264,158 +588,102 @@ function renderBuilderVersions() {
     `).join('');
 }
 
-function handleNodeClick(nodeId) {
-  if (builderState.connectorSourceId && builderState.connectorSourceId !== nodeId) {
-    const exists = builderState.payload.builderState.edges.some(edge => edge.source === builderState.connectorSourceId && edge.target === nodeId);
-    if (!exists) {
-      builderState.payload.builderState.edges.push({
-        id: `edge-${Date.now()}`,
-        source: builderState.connectorSourceId,
-        target: nodeId,
-        label: '',
-        kind: 'flow'
-      });
-    }
-    builderState.connectorSourceId = '';
-  }
-
-  builderState.selectedNodeId = nodeId;
-  renderBuilderCanvas();
-}
-
-function hydrateNodeEditor() {
-  const node = builderState.payload.builderState.nodes.find(item => item.id === builderState.selectedNodeId);
-  const form = document.getElementById('builder-node-form');
-  const empty = !node;
-  form?.classList.toggle('muted-panel', empty);
-
-  document.getElementById('builder-node-title').value = node?.data?.title || '';
-  document.getElementById('builder-node-text').value = node?.data?.text || '';
-  document.getElementById('builder-node-goal').value = node?.data?.goal || '';
-  document.getElementById('builder-node-image').value = node?.data?.image || '';
-  document.getElementById('builder-node-music').value = node?.data?.music || '';
-  document.getElementById('builder-node-options').value = (node?.data?.options || [])
-    .map(option => [option.label, option.text, option.targetNodeId].filter(Boolean).join('|'))
-    .join('\n');
-}
-
-function applyNodeEditor() {
-  const node = builderState.payload.builderState.nodes.find(item => item.id === builderState.selectedNodeId);
-  if (!node) return;
-  node.data.title = document.getElementById('builder-node-title').value || '';
-  node.data.text = document.getElementById('builder-node-text').value || '';
-  node.data.goal = document.getElementById('builder-node-goal').value || '';
-  node.data.image = document.getElementById('builder-node-image').value || '';
-  node.data.music = document.getElementById('builder-node-music').value || '';
-  node.data.options = splitLines(document.getElementById('builder-node-options').value || '').map((line, index) => {
-    const [label, text, targetNodeId] = line.split('|').map(item => item.trim());
-    return {
-      id: `${node.id}-opt-${index + 1}`,
-      label: label || `Opcao ${index + 1}`,
-      text: text || '',
-      targetNodeId: targetNodeId || ''
-    };
-  });
-}
-
-function appendNode(type) {
-  const nodes = builderState.payload.builderState.nodes;
-  const index = nodes.length;
-  const node = {
-    id: `${type}-${Date.now()}`,
-    type,
-    position: { x: 100 + index * 220, y: 120 + (index % 3) * 140 },
-    data: {
-      title: labelByType(type),
-      text: '',
-      goal: '',
-      image: '',
-      music: '',
-      options: type.includes('decisao')
-        ? [
-            { id: `${type}-${Date.now()}-a`, label: 'Opcao 1', text: '', targetNodeId: '' },
-            { id: `${type}-${Date.now()}-b`, label: 'Opcao 2', text: '', targetNodeId: '' }
-          ]
-        : []
-    }
-  };
-  nodes.push(node);
-  if (nodes.length > 1) {
-    const previous = nodes[nodes.length - 2];
-    builderState.payload.builderState.edges.push({
-      id: `edge-${Date.now()}-${index}`,
-      source: previous.id,
-      target: node.id,
-      label: '',
-      kind: 'flow'
-    });
-  }
-  builderState.selectedNodeId = node.id;
-}
-
-function removeSelectedNode() {
-  builderState.payload.builderState.nodes = builderState.payload.builderState.nodes.filter(node => node.id !== builderState.selectedNodeId);
-  builderState.payload.builderState.edges = builderState.payload.builderState.edges.filter(edge => edge.source !== builderState.selectedNodeId && edge.target !== builderState.selectedNodeId);
-  builderState.selectedNodeId = builderState.payload.builderState.nodes[0]?.id || '';
-  builderState.connectorSourceId = '';
-}
-
-function estimateRuntime() {
+function renderFinalSummary() {
+  const container = document.getElementById('builder-final-summary');
+  if (!container) return;
+  const storyForm = builderState.payload.storyForm || {};
   const nodes = builderState.payload.builderState.nodes || [];
-  const sequence = nodes.map(node => node.data?.title || node.type).join(' -> ');
+  const decisions = nodes.filter(node => node.type.includes('decisao'));
+  container.innerHTML = `
+    <article class="stack-item">
+      <h4>${escapeHtml(storyForm.title || 'História sem título')}</h4>
+      <p>${escapeHtml(storyForm.summary || storyForm.lore_description || 'Sem resumo gerado ainda.')}</p>
+      <p>Status: ${escapeHtml(storyForm.status || 'draft')} | Slug: ${escapeHtml(storyForm.slug || 'pendente')}</p>
+    </article>
+    <article class="stack-item">
+      <h4>Validação rápida</h4>
+      <p>Blocos: ${nodes.length}</p>
+      <p>Decisões: ${decisions.length}</p>
+      <p>Jogadores: ${storyForm.min_players || 1}-${storyForm.max_players || 4}</p>
+    </article>
+    <article class="stack-item">
+      <h4>Fallbacks</h4>
+      <p>Se a IA falhar, os campos continuam editáveis manualmente e o fluxo não trava.</p>
+    </article>
+  `;
+}
+
+function buildStructureSummary() {
+  const nodes = builderState.payload.builderState.nodes || [];
   return {
-    chapterCount: nodes.filter(node => !node.type.includes('decisao')).length,
-    decisionCount: nodes.filter(node => node.type.includes('decisao')).length,
-    sequence
+    inicio: nodes.filter(node => node.type === 'start').map(node => node.data.title),
+    meio: nodes.filter(node => ['ato', 'evento', 'surpresa'].includes(node.type)).map(node => node.data.title),
+    final: nodes.filter(node => ['boss', 'final'].includes(node.type)).map(node => node.data.title),
+    decisoes: nodes.filter(node => node.type.includes('decisao')).map(node => node.data.title),
+    finaisAlternativos: nodes.filter(node => node.type === 'final').map(node => node.data.text || node.data.title)
   };
 }
 
-function makeNodeDraggable(nodeElement) {
-  let dragging = false;
-  let offsetX = 0;
-  let offsetY = 0;
-  const nodeId = nodeElement.dataset.builderNode;
+function loadPersistedDraft() {
+  const key = getDraftKey();
+  if (!key) return;
+  const raw = window.localStorage.getItem(key);
+  if (!raw) return;
+  try {
+    const draft = JSON.parse(raw);
+    builderState.currentStep = draft.currentStep || 1;
+    builderState.payload.guidedDescription = draft.guidedDescription || builderState.payload.guidedDescription;
+  } catch {}
+}
 
-  nodeElement.onpointerdown = event => {
-    if (event.target.closest('button')) return;
-    dragging = true;
-    builderState.selectedNodeId = nodeId;
-    offsetX = event.clientX - nodeElement.offsetLeft;
-    offsetY = event.clientY - nodeElement.offsetTop;
-    nodeElement.setPointerCapture(event.pointerId);
-  };
+function persistDraft() {
+  const key = getDraftKey();
+  if (!key) return;
+  window.localStorage.setItem(key, JSON.stringify({
+    currentStep: builderState.currentStep,
+    guidedDescription: builderState.payload.guidedDescription
+  }));
+}
 
-  nodeElement.onpointermove = event => {
-    if (!dragging) return;
-    const node = builderState.payload.builderState.nodes.find(item => item.id === nodeId);
-    if (!node) return;
-    node.position.x = Math.max(24, event.clientX - offsetX);
-    node.position.y = Math.max(24, event.clientY - offsetY);
-    nodeElement.style.left = `${node.position.x}px`;
-    nodeElement.style.top = `${node.position.y}px`;
-  };
+function getDraftKey() {
+  return builderState.storyId ? `builder-stepper:${builderState.storyId}` : '';
+}
 
-  nodeElement.onpointerup = event => {
-    dragging = false;
-    nodeElement.releasePointerCapture?.(event.pointerId);
-    renderBuilderCanvas();
-  };
+function getSelectedNode() {
+  return (builderState.payload.builderState.nodes || []).find(node => node.id === builderState.selectedNodeId) || null;
+}
+
+function extractStructuredField(text, label) {
+  const regex = new RegExp(`${label}:\\s*(.*)`, 'i');
+  const match = text.match(regex);
+  return match?.[1]?.trim() || '';
+}
+
+function normalizeTags(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return String(value || '').split(',').map(item => item.trim()).filter(Boolean);
 }
 
 function splitLines(value) {
+  return String(value || '').split(/\r?\n/).map(item => item.trim()).filter(Boolean);
+}
+
+function slugify(value) {
   return String(value || '')
-    .split(/\r?\n/)
-    .map(item => item.trim())
-    .filter(Boolean);
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'historia-sem-titulo';
 }
 
 function labelByType(type) {
   return {
-    start: 'Inicio',
+    start: 'Início',
     ato: 'Ato',
     evento: 'Evento',
-    decisao_grupo: 'Decisao em grupo',
-    decisao_pessoal: 'Decisao pessoal',
+    decisao_grupo: 'Decisão em grupo',
+    decisao_pessoal: 'Decisão pessoal',
     surpresa: 'Surpresa',
     boss: 'Boss',
     final: 'Final'
