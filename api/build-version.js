@@ -1,5 +1,5 @@
 import pkg from '../package.json' with { type: 'json' };
-import { SUPABASE_SERVICE_ROLE_KEY, dbSelect } from './_lib.js';
+import { SUPABASE_SERVICE_ROLE_KEY, dbInsert, dbPatch, dbSelect } from './_lib.js';
 
 const version = pkg?.version || '0.0.0';
 
@@ -23,6 +23,77 @@ async function getCurrentVersion(environmentName) {
     });
 
     return current || null;
+}
+
+function buildRuntimeVersion(commitSha) {
+    const shortSha = String(commitSha || '').trim().slice(0, 7);
+    return shortSha ? `${version}+${shortSha}` : version;
+}
+
+async function ensureCurrentVersion({
+    environmentName,
+    commitSha,
+    deploymentUrl,
+    source,
+    currentVersion
+}) {
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
+        return null;
+    }
+
+    const [existingByCommit] = await dbSelect('app_versions', {
+        select: 'id,current_version,source',
+        environment_name: `eq.${environmentName}`,
+        commit_ref: `eq.${commitSha}`,
+        order: 'release_date.desc',
+        limit: '1'
+    });
+
+    await dbPatch('app_versions', {
+        environment_name: `eq.${environmentName}`,
+        is_current: 'eq.true',
+        commit_ref: `neq.${commitSha}`
+    }, {
+        is_current: false
+    }, 'return=minimal');
+
+    if (existingByCommit?.id) {
+        const [updated] = await dbPatch('app_versions', {
+            id: `eq.${existingByCommit.id}`
+        }, {
+            current_version: currentVersion,
+            deployment_url: deploymentUrl,
+            source,
+            is_current: true,
+            is_public: true,
+            updated_at: new Date().toISOString()
+        });
+        return updated || null;
+    }
+
+    const [lastCurrent] = await dbSelect('app_versions', {
+        select: 'current_version',
+        environment_name: `eq.${environmentName}`,
+        order: 'release_date.desc',
+        limit: '1'
+    });
+
+    const [inserted] = await dbInsert('app_versions', [{
+        app_name: 'ContaComigo',
+        environment_name: environmentName,
+        current_version: currentVersion,
+        previous_version: lastCurrent?.current_version || null,
+        release_date: new Date().toISOString(),
+        responsible_name: 'render-runtime',
+        deployment_url: deploymentUrl,
+        commit_ref: commitSha || null,
+        release_notes: 'Registro automatico em runtime',
+        source,
+        is_current: true,
+        is_public: true
+    }]);
+
+    return inserted || null;
 }
 
 export default async function handler(req, res) {
@@ -52,7 +123,7 @@ export default async function handler(req, res) {
         ? `${deploymentUrl.startsWith('http') ? deploymentUrl : `https://${deploymentUrl.replace(/^https?:\/\//i, '')}`}`
         : '';
 
-    let currentVersion = version;
+    let currentVersion = buildRuntimeVersion(commitSha);
     let versionSource = renderService ? 'runtime_render' : 'runtime_build';
 
     try {
@@ -60,6 +131,18 @@ export default async function handler(req, res) {
         if (persistedVersion?.current_version) {
             currentVersion = persistedVersion.current_version;
             versionSource = persistedVersion.source || 'database';
+        } else if (commitSha) {
+            const ensuredVersion = await ensureCurrentVersion({
+                environmentName,
+                commitSha,
+                deploymentUrl: deploymentUrlNormalized,
+                source: versionSource,
+                currentVersion
+            });
+            if (ensuredVersion?.current_version) {
+                currentVersion = ensuredVersion.current_version;
+                versionSource = ensuredVersion.source || versionSource;
+            }
         }
     } catch {
         // Keep package.json fallback when the database is temporarily unavailable.

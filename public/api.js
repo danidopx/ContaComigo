@@ -103,6 +103,18 @@ export async function loadPromptConfigs() {
 }
 
 export async function carregarVersaoAtualApp() {
+  const runtimeResponse = await fetch('/api/build-version').catch(() => null);
+  if (runtimeResponse?.ok) {
+    const runtimePayload = await runtimeResponse.json().catch(() => null);
+    if (runtimePayload?.current_version) {
+      return {
+        current_version: runtimePayload.current_version,
+        environment_name: runtimePayload.environment_name || 'production',
+        release_date: new Date().toISOString()
+      };
+    }
+  }
+
   const sb = getSb();
   const { data } = await sb
     .from('app_versions')
