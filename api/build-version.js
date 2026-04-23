@@ -125,12 +125,15 @@ export default async function handler(req, res) {
 
     let currentVersion = buildRuntimeVersion(commitSha);
     let versionSource = renderService ? 'runtime_render' : 'runtime_build';
+    let syncStatus = SUPABASE_SERVICE_ROLE_KEY ? 'pending' : 'service_role_missing';
+    let syncError = '';
 
     try {
         const persistedVersion = await getCurrentVersion(environmentName);
         if (persistedVersion?.current_version) {
             currentVersion = persistedVersion.current_version;
             versionSource = persistedVersion.source || 'database';
+            syncStatus = 'loaded_from_database';
         } else if (commitSha) {
             const ensuredVersion = await ensureCurrentVersion({
                 environmentName,
@@ -142,10 +145,15 @@ export default async function handler(req, res) {
             if (ensuredVersion?.current_version) {
                 currentVersion = ensuredVersion.current_version;
                 versionSource = ensuredVersion.source || versionSource;
+                syncStatus = 'registered_in_database';
+            } else {
+                syncStatus = 'database_write_skipped';
             }
         }
-    } catch {
-        // Keep package.json fallback when the database is temporarily unavailable.
+    } catch (error) {
+        syncStatus = 'database_error';
+        syncError = error?.message || 'unknown_error';
+        console.error('[build-version] failed to sync app_versions:', error);
     }
 
     return res.status(200).json({
@@ -154,6 +162,8 @@ export default async function handler(req, res) {
         commit_ref: commitSha,
         branch_name: commitRef,
         deployment_url: deploymentUrlNormalized,
-        source: versionSource
+        source: versionSource,
+        version_sync_status: syncStatus,
+        version_sync_error: syncError
     });
 }
