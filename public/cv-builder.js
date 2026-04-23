@@ -137,6 +137,40 @@ export function renderSummary(state, consolidation) {
   `;
 }
 
+export function renderAdminStories(container, items, actions = {}) {
+  container.innerHTML = items.length === 0
+    ? '<div class="stack-item">Nenhuma história encontrada.</div>'
+    : items.map(item => `
+      <article class="stack-item story-admin-card">
+        <div class="story-admin-head">
+          <div>
+            <h4>${escapeHtml(item.title || item.id)}</h4>
+            <p class="muted-copy">${escapeHtml(item.summary || 'Sem resumo curto.')}</p>
+          </div>
+          <span class="story-admin-badge ${item.is_published ? 'is-live' : 'is-draft'}">${item.is_published ? 'Publicada' : 'Rascunho'}</span>
+        </div>
+        <div class="story-admin-meta">
+          <span>Slug: ${escapeHtml(item.slug || '—')}</span>
+          <span>Sistema: ${escapeHtml(item.system_base || 'generic')}</span>
+          <span>Jogadores: ${escapeHtml(item.min_players || 1)}-${escapeHtml(item.max_players || 4)}</span>
+        </div>
+        <p>${escapeHtml(item.lore_description || item.world_context || 'Sem história geral cadastrada ainda.')}</p>
+        <div class="actions">
+          <button class="btn secondary" data-admin-story-edit="${item.id}">Editar</button>
+          <button class="btn ghost" data-admin-story-delete="${item.id}">Excluir</button>
+        </div>
+      </article>
+    `).join('');
+
+  container.querySelectorAll('[data-admin-story-edit]').forEach(button => {
+    button.addEventListener('click', () => actions.onEdit?.(button.dataset.adminStoryEdit));
+  });
+
+  container.querySelectorAll('[data-admin-story-delete]').forEach(button => {
+    button.addEventListener('click', () => actions.onDelete?.(button.dataset.adminStoryDelete));
+  });
+}
+
 export function renderAdminList(container, items, titleKey = 'title', subtitleKey = 'id') {
   container.innerHTML = items.length === 0
     ? '<div class="stack-item">Nenhum item encontrado.</div>'

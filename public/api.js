@@ -91,6 +91,53 @@ export async function adminCrud(entity, method = 'GET', payload = {}) {
   });
 }
 
+export async function loadStoryBuilder(storyId) {
+  return request(`/api/story-builder?storyId=${encodeURIComponent(storyId)}`);
+}
+
+export async function saveStoryBuilder(storyId, payload) {
+  return request('/api/story-builder', {
+    method: 'POST',
+    body: JSON.stringify({ storyId, action: 'save', ...payload })
+  });
+}
+
+export async function generateStoryBuilder(storyId, input, payload) {
+  return request('/api/story-builder', {
+    method: 'POST',
+    body: JSON.stringify({ storyId, action: 'generate', input, ...payload })
+  });
+}
+
+export async function publishStoryBuilder(storyId, payload) {
+  return request('/api/story-builder', {
+    method: 'POST',
+    body: JSON.stringify({ storyId, action: 'publish', ...payload })
+  });
+}
+
+export async function loadSessionChat(sessionId) {
+  return request(`/api/session-chat?sessionId=${encodeURIComponent(sessionId)}`);
+}
+
+export async function sendSessionChat(sessionId, message) {
+  return request('/api/session-chat', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId, message })
+  });
+}
+
+export async function loadSessionRolls(sessionId) {
+  return request(`/api/session-roll?sessionId=${encodeURIComponent(sessionId)}`);
+}
+
+export async function sendSessionRoll(sessionId, dice) {
+  return request('/api/session-roll', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId, dice })
+  });
+}
+
 export async function loadPromptConfigs() {
   const sb = getSb();
   const { data, error } = await sb.from('story_prompt_configs').select('*').is('deleted_at', null).order('prompt_name', { ascending: true });
@@ -108,9 +155,9 @@ export async function carregarVersaoAtualApp() {
     const runtimePayload = await runtimeResponse.json().catch(() => null);
     if (runtimePayload?.current_version) {
       return {
-        current_version: runtimePayload.current_version,
+        current_version: sanitizeVersion(runtimePayload.current_version),
         environment_name: runtimePayload.environment_name || 'production',
-        release_date: new Date().toISOString()
+        release_date: runtimePayload.release_date || new Date().toISOString()
       };
     }
   }
@@ -123,7 +170,7 @@ export async function carregarVersaoAtualApp() {
     .order('release_date', { ascending: false })
     .limit(1)
     .maybeSingle();
-  return data || null;
+  return data ? { ...data, current_version: sanitizeVersion(data.current_version) } : null;
 }
 
 export async function sincronizarVersaoAppNaTela() {
@@ -139,4 +186,8 @@ export async function sincronizarVersaoAppNaTela() {
   const metaText = `${environmentLabel} | ${new Date(version.release_date).toLocaleString('pt-BR')}`;
   labels.forEach(label => { label.textContent = labelText; });
   metas.forEach(meta => { meta.textContent = metaText; });
+}
+
+function sanitizeVersion(value) {
+  return String(value || '0.0.0').replace(/\+.*/, '').trim();
 }

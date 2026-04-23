@@ -125,21 +125,23 @@ export async function dbDelete(table, query) {
 }
 
 export async function getSessionBundle(sessionId) {
-  const [sessions, players, characters, chapterStates, decisions] = await Promise.all([
-    dbSelect('game_sessions', { select: '*', id: `eq.${sessionId}` }),
-    dbSelect('session_players', { select: '*', session_id: `eq.${sessionId}`, order: 'joined_at.asc' }),
-    dbSelect('session_characters', { select: '*', session_id: `eq.${sessionId}` }),
-    dbSelect('session_chapter_states', { select: '*', session_id: `eq.${sessionId}`, order: 'created_at.desc' }),
-    dbSelect('session_decisions', { select: '*', session_id: `eq.${sessionId}`, order: 'created_at.desc' })
+  const [sessions, players, characters, chapterStates, decisions, events] = await Promise.all([
+    dbSelect('game_sessions', { select: '*', id: `eq.${sessionId}`, deleted_at: 'is.null' }),
+    dbSelect('session_players', { select: '*', session_id: `eq.${sessionId}`, deleted_at: 'is.null', order: 'joined_at.asc' }),
+    dbSelect('session_characters', { select: '*', session_id: `eq.${sessionId}`, deleted_at: 'is.null' }),
+    dbSelect('session_chapter_states', { select: '*', session_id: `eq.${sessionId}`, deleted_at: 'is.null', order: 'created_at.desc' }),
+    dbSelect('session_decisions', { select: '*', session_id: `eq.${sessionId}`, deleted_at: 'is.null', order: 'created_at.desc' }),
+    dbSelect('session_events', { select: '*', session_id: `eq.${sessionId}`, order: 'created_at.asc' })
   ]);
 
   const session = sessions[0];
   if (!session) throw new Error('Sessão não encontrada.');
 
-  const [story] = await dbSelect('stories', { select: '*', id: `eq.${session.story_id}` });
+  const [story] = await dbSelect('stories', { select: '*', id: `eq.${session.story_id}`, deleted_at: 'is.null' });
   const chapters = await dbSelect('story_chapters', {
     select: '*',
     story_id: `eq.${session.story_id}`,
+    deleted_at: 'is.null',
     order: 'chapter_order.asc'
   });
 
@@ -147,12 +149,14 @@ export async function getSessionBundle(sessionId) {
   const decisionPoints = chapter ? await dbSelect('story_decision_points', {
     select: '*',
     chapter_id: `eq.${chapter.id}`,
-    order: 'created_at.asc'
+    deleted_at: 'is.null',
+    order: 'sort_order.asc'
   }) : [];
   const decisionPoint = decisionPoints[0] || null;
   const decisionOptions = decisionPoint ? await dbSelect('story_decision_options', {
     select: '*',
     decision_point_id: `eq.${decisionPoint.id}`,
+    deleted_at: 'is.null',
     order: 'sort_order.asc'
   }) : [];
 
@@ -181,6 +185,7 @@ export async function getSessionBundle(sessionId) {
     decisionPoint,
     decisionOptions,
     decisions,
+    events,
     decisionStatus: {
       requiredCount,
       decidedCount,

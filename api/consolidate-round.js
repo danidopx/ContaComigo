@@ -1,5 +1,6 @@
 import { generateWithGemini } from './_gemini.js';
 import { dbInsert, dbPatch, dbSelect, getSessionBundle, getUserFromRequest, handleOptions, json, logSessionEvent, userIsAdmin } from './_lib.js';
+import { buildDecisionOutcome, loadPromptMap } from './_narrative.js';
 
 function extractText(payload) {
   return payload?.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -22,7 +23,8 @@ function parseStructuredResult(text, bundle) {
   return {
     summary: text || 'A rodada foi consolidada com sucesso.',
     globalImpact: 'O grupo alterou o rumo da história e abriu um novo estado para o capítulo seguinte.',
-    individualImpacts: impacts
+    individualImpacts: impacts,
+    nextNodeId: bundle.chapter?.chapter_metadata?.nextNodeIds?.[0] || null
   };
 }
 
@@ -42,19 +44,16 @@ export default async function handler(req, res) {
       return json(res, 409, { error: 'A rodada só pode ser consolidada quando todos decidirem.' });
     }
 
-    const prompts = await dbSelect('story_prompt_configs', {
-      select: 'prompt_name,prompt_content',
-      is_active: 'eq.true',
-      deleted_at: 'is.null'
-    });
+    const prompts = await loadPromptMap();
     const rules = await dbSelect('story_rules', {
       select: 'rule_name,rule_content',
       story_id: `eq.${bundle.story.id}`,
       deleted_at: 'is.null'
     });
 
-    const promptBase = prompts.find(item => item.prompt_name === 'chapter_continue')?.prompt_content
-      || 'Continue o capítulo atual e responda em JSON com summary, globalImpact e individualImpacts.';
+    const promptBase = prompts.consolidate_decisions?.prompt_content
+      || 'Consolide as decisoes da rodada em JSON curto, sem loops e aproximando o grupo do final.';
+    const decisionOutcome = buildDecisionOutcome(bundle);
 
     const context = {
       story: bundle.story,
@@ -64,7 +63,12 @@ export default async function handler(req, res) {
         character: player.character,
         decision: bundle.decisions.find(item => item.session_player_id === player.id)
       })),
-      rules
+      rules,
+      decisionOutcome,
+      recentEvents: (bundle.events || []).slice(-10).map(event => ({
+        type: event.event_type,
+        payload: event.payload
+      }))
     };
 
     const finalPrompt = `${promptBase}
@@ -76,6 +80,7 @@ Responda somente JSON:
 {
   "summary": "",
   "globalImpact": "",
+  "nextNodeId": "${decisionOutcome.nextNodeId || ''}",
   "individualImpacts": {
     "nome_personagem": "impacto"
   }
@@ -83,11 +88,12 @@ Responda somente JSON:
 
     const generation = await generateWithGemini({
       prompt: finalPrompt,
-      modelo: prompts.find(item => item.prompt_name === 'narration_main')?.model_name || 'gemini-2.5-flash'
+      modelo: prompts.consolidate_decisions?.model_name || 'gemini-2.5-flash'
     });
 
     const rawText = extractText(generation.payload);
     const parsed = parseStructuredResult(rawText, bundle);
+    parsed.nextNodeId = parsed.nextNodeId || decisionOutcome.nextNodeId || bundle.chapter?.chapter_metadata?.nextNodeIds?.[0] || null;
     const namedImpacts = {};
     bundle.players.forEach(player => {
       const key = player.character?.name || player.profile?.full_name || player.user_id;
@@ -104,12 +110,20 @@ Responda somente JSON:
       }, 'return=minimal');
     }
 
-    await dbPatch('game_sessions', { id: `eq.${sessionId}` }, { status: 'summary' }, 'return=minimal');
+    await dbPatch('game_sessions', { id: `eq.${sessionId}` }, {
+      status: 'summary',
+      metadata: {
+        ...(bundle.session.metadata || {}),
+        pending_next_node_id: parsed.nextNodeId,
+        path: [...(bundle.session.metadata?.path || []), bundle.chapter?.builder_node_id || bundle.chapter?.id].filter(Boolean),
+        last_decision_summary: decisionOutcome
+      }
+    }, 'return=minimal');
     await dbInsert('ai_generations', [{
       session_id: sessionId,
       story_id: bundle.story.id,
       chapter_id: bundle.chapter?.id,
-      prompt_name: 'chapter_continue',
+      prompt_name: 'consolidate_decisions',
       model_name: generation.model,
       input_payload: context,
       raw_response: rawText,

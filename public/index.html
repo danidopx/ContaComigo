@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#1f2937">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icon.png">
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css?v=20260423c">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -209,6 +209,33 @@
             </div>
           </form>
         </div>
+
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Mesa viva</p>
+              <h2>Chat e rolagens</h2>
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="session-tools-panel">
+              <div id="session-chat-presets" class="actions quick-chip-row"></div>
+              <div id="session-chat-list" class="stack-list"></div>
+              <form id="session-chat-form" class="form-grid">
+                <textarea id="session-chat-input" placeholder="Escreva uma mensagem para a mesa" rows="3"></textarea>
+                <button class="btn" type="submit">Enviar mensagem</button>
+              </form>
+            </div>
+            <div class="session-tools-panel">
+              <div class="actions">
+                <button class="btn secondary" type="button" data-roll-dice="d20">d20</button>
+                <button class="btn secondary" type="button" data-roll-dice="d10">d10</button>
+                <button class="btn secondary" type="button" data-roll-dice="2d6">2d6</button>
+              </div>
+              <div id="session-roll-list" class="stack-list"></div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section id="screen-wait" class="screen">
@@ -251,6 +278,7 @@
           </div>
           <div class="admin-tabs">
             <button class="tab active" data-admin-tab="stories">Histórias</button>
+            <button class="tab" data-admin-tab="builder">Builder</button>
             <button class="tab" data-admin-tab="chapters">Capítulos</button>
             <button class="tab" data-admin-tab="decisions">Decisões</button>
             <button class="tab" data-admin-tab="prompts">Prompts</button>
@@ -259,29 +287,208 @@
           </div>
 
           <div id="admin-tab-stories" class="admin-panel active">
-            <form id="admin-story-form" class="form-grid">
-              <input name="title" placeholder="Título da história" required>
-              <input name="slug" placeholder="Slug" required>
-              <textarea name="summary" placeholder="Resumo" rows="3"></textarea>
-              <textarea name="lore_description" placeholder="Lore / descrição" rows="3"></textarea>
-              <input name="cover_url" placeholder="Capa opcional (URL)">
-              <textarea name="cover_text" placeholder="Texto de capa" rows="3"></textarea>
-              <input name="status" placeholder="Status" value="published">
-              <input name="system_base" placeholder="Sistema base" value="generic">
-              <div class="two-col">
-                <input name="min_players" type="number" min="1" max="10" placeholder="Mín. jogadores" value="1">
-                <input name="max_players" type="number" min="1" max="10" placeholder="Máx. jogadores" value="4">
+            <div class="guided-admin-grid">
+              <div class="stack-list">
+                <article class="stack-item guided-card">
+                  <p class="eyebrow">Passo 1</p>
+                  <h3>Criar ou editar uma história</h3>
+                  <p class="muted-copy">Preencha a campanha com uma descrição clara. Depois ela aparece na lista ao lado com ações de editar e excluir.</p>
+                </article>
+                <form id="admin-story-form" class="form-grid guided-form">
+                  <input type="hidden" name="id" id="admin-story-id">
+                  <label class="field-block">
+                    <span>Título da história</span>
+                    <small>Nome principal da campanha.</small>
+                    <input name="title" placeholder="Ex: As Ruínas de Varthel" required>
+                  </label>
+                  <label class="field-block">
+                    <span>Slug</span>
+                    <small>Identificador único sem espaços. Ex: as-ruinas-de-varthel</small>
+                    <input name="slug" placeholder="Slug" required>
+                  </label>
+                  <label class="field-block">
+                    <span>Resumo curto</span>
+                    <small>Texto breve para lista e visão geral.</small>
+                    <textarea name="summary" placeholder="Resumo da campanha" rows="3"></textarea>
+                  </label>
+                  <label class="field-block">
+                    <span>História geral / premissa</span>
+                    <small>Use este campo para descrever o mundo, conflito central, antagonista e objetivo final. Esta é a base principal para a IA gerar a estrutura.</small>
+                    <textarea name="lore_description" placeholder="Descreva a campanha de forma ampla e guiada." rows="5"></textarea>
+                  </label>
+                  <label class="field-block">
+                    <span>Texto de capa</span>
+                    <small>Frase curta de impacto para a campanha.</small>
+                    <textarea name="cover_text" placeholder="Texto de capa" rows="3"></textarea>
+                  </label>
+                  <label class="field-block">
+                    <span>Imagem de capa</span>
+                    <small>Opcional.</small>
+                    <input name="cover_url" placeholder="Capa opcional (URL)">
+                  </label>
+                  <div class="two-col">
+                    <label class="field-block">
+                      <span>Status</span>
+                      <small>`draft` ou `published`.</small>
+                      <input name="status" placeholder="Status" value="published">
+                    </label>
+                    <label class="field-block">
+                      <span>Sistema base</span>
+                      <small>Ex: generic, d20, horror-lite.</small>
+                      <input name="system_base" placeholder="Sistema base" value="generic">
+                    </label>
+                  </div>
+                  <div class="two-col">
+                    <label class="field-block">
+                      <span>Mínimo de jogadores</span>
+                      <small>Quantidade mínima recomendada.</small>
+                      <input name="min_players" type="number" min="1" max="10" placeholder="Mín. jogadores" value="1">
+                    </label>
+                    <label class="field-block">
+                      <span>Máximo de jogadores</span>
+                      <small>Quantidade máxima suportada.</small>
+                      <input name="max_players" type="number" min="1" max="10" placeholder="Máx. jogadores" value="4">
+                    </label>
+                  </div>
+                  <label class="field-block">
+                    <span>Compatibilidade de ficha</span>
+                    <small>Modelo de personagem usado nesta campanha.</small>
+                    <input name="character_compatibility" placeholder="Compatibilidade de ficha" value="generic-flex">
+                  </label>
+                  <label class="field-block">
+                    <span>Tags</span>
+                    <small>Separe por vírgula.</small>
+                    <input name="tags" placeholder="Tags separadas por vírgula">
+                  </label>
+                  <label class="field-block">
+                    <span>Prompt mestre</span>
+                    <small>Diretriz global opcional para a IA.</small>
+                    <textarea name="master_prompt" placeholder="Prompt mestre" rows="4"></textarea>
+                  </label>
+                  <label class="field-block">
+                    <span>Contexto do mundo</span>
+                    <small>Informações do cenário que precisam ser respeitadas.</small>
+                    <textarea name="world_context" placeholder="Contexto do mundo" rows="3"></textarea>
+                  </label>
+                  <label class="field-block">
+                    <span>Regras narrativas</span>
+                    <small>Limites, estilo, estrutura e coerência desejada.</small>
+                    <textarea name="narrative_rules" placeholder="Regras narrativas" rows="3"></textarea>
+                  </label>
+                  <label class="field-block">
+                    <span>Estilo / tom</span>
+                    <small>Ex: sombrio, heroico, épico, leve.</small>
+                    <input name="tone_style" placeholder="Estilo / tom">
+                  </label>
+                  <label class="toggle-line"><input type="checkbox" name="is_published" checked> Publicada</label>
+                  <div class="actions">
+                    <button class="btn" id="admin-story-submit" type="submit">Salvar história</button>
+                    <button class="btn ghost" id="admin-story-reset" type="button">Nova história</button>
+                  </div>
+                </form>
               </div>
-              <input name="character_compatibility" placeholder="Compatibilidade de ficha" value="generic-flex">
-              <input name="tags" placeholder="Tags separadas por vírgula">
-              <textarea name="master_prompt" placeholder="Prompt mestre" rows="4"></textarea>
-              <textarea name="world_context" placeholder="Contexto do mundo" rows="3"></textarea>
-              <textarea name="narrative_rules" placeholder="Regras narrativas" rows="3"></textarea>
-              <input name="tone_style" placeholder="Estilo / tom">
-              <label><input type="checkbox" name="is_published" checked> Publicada</label>
-              <button class="btn" type="submit">Salvar história</button>
-            </form>
-            <div id="admin-stories-list" class="stack-list"></div>
+              <div class="stack-list">
+                <article class="stack-item guided-card">
+                  <p class="eyebrow">Passo 2</p>
+                  <h3>Lista de histórias</h3>
+                  <p class="muted-copy">Revise tudo que já existe e use os botões para editar ou excluir sem precisar preencher IDs manualmente.</p>
+                </article>
+                <div id="admin-stories-list" class="stack-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="admin-tab-builder" class="admin-panel">
+            <div class="builder-shell">
+              <div class="builder-sidebar">
+                <div class="stack-list">
+                  <article class="stack-item">
+                    <h4>História alvo</h4>
+                    <select id="builder-story-select"></select>
+                  </article>
+                  <article class="stack-item">
+                    <h4>Base narrativa</h4>
+                    <form id="builder-generate-form" class="form-grid">
+                      <label class="field-block">
+                        <span>Título base</span>
+                        <small>Nome que a IA vai usar como referência.</small>
+                        <input id="builder-title" name="title" placeholder="Título base">
+                      </label>
+                      <label class="field-block">
+                        <span>História geral</span>
+                        <small>Resumo amplo da campanha para a IA gerar a base praticamente sozinha.</small>
+                        <textarea id="builder-premise" name="premise" rows="5" placeholder="Descreva a ideia geral da campanha, o conflito central, possíveis atos e o tipo de final desejado."></textarea>
+                      </label>
+                      <label class="field-block">
+                        <span>Gênero</span>
+                        <small>Ex: fantasia, horror, ficção científica.</small>
+                        <input id="builder-genre" name="genre" placeholder="Gênero">
+                      </label>
+                      <label class="field-block">
+                        <span>Tom</span>
+                        <small>Ex: tenso, leve, dramático, épico.</small>
+                        <input id="builder-tone" name="tone" placeholder="Tom">
+                      </label>
+                      <label class="field-block">
+                        <span>Modelo narrativo</span>
+                        <small>Ex: 3 atos, jornada do herói, missão com reviravolta.</small>
+                        <input id="builder-model" name="narrativeModel" placeholder="Modelo narrativo">
+                      </label>
+                      <button class="btn" type="submit">Gerar Base</button>
+                    </form>
+                  </article>
+                  <article class="stack-item">
+                    <h4>Mensagens prontas</h4>
+                    <textarea id="builder-chat-presets" rows="5" placeholder="Uma mensagem por linha"></textarea>
+                  </article>
+                  <article class="stack-item">
+                    <h4>Metadata leve</h4>
+                    <input id="builder-media-image" placeholder="Imagem opcional">
+                    <input id="builder-media-music" placeholder="Música opcional">
+                  </article>
+                  <article class="stack-item">
+                    <h4>Controles</h4>
+                    <div class="builder-palette">
+                      <button type="button" class="btn ghost" data-builder-add-node="start">Início</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="ato">Ato</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="evento">Evento</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="decisao_grupo">Decisão grupo</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="decisao_pessoal">Decisão pessoal</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="surpresa">Surpresa</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="boss">Boss</button>
+                      <button type="button" class="btn ghost" data-builder-add-node="final">Final</button>
+                    </div>
+                    <div class="builder-actions">
+                      <button id="builder-connect-node" type="button" class="btn secondary">Conectar selecionado</button>
+                      <button id="builder-remove-node" type="button" class="btn ghost">Remover bloco</button>
+                      <button id="builder-reset-edges" type="button" class="btn ghost">Limpar conexões</button>
+                      <button id="builder-save" type="button" class="btn">Salvar rascunho</button>
+                      <button id="builder-publish" type="button" class="btn secondary">Publicar</button>
+                    </div>
+                  </article>
+                  <div id="builder-runtime-summary" class="stack-list"></div>
+                </div>
+              </div>
+
+              <div class="builder-main">
+                <div class="builder-canvas-wrap">
+                  <div id="builder-canvas" class="builder-canvas"></div>
+                </div>
+                <div class="builder-editor-grid">
+                  <form id="builder-node-form" class="card form-grid">
+                    <p class="eyebrow">Editor do bloco</p>
+                    <input id="builder-node-title" placeholder="Título do bloco">
+                    <textarea id="builder-node-text" rows="3" placeholder="Descrição do bloco"></textarea>
+                    <textarea id="builder-node-goal" rows="2" placeholder="Objetivo / transição"></textarea>
+                    <textarea id="builder-node-options" rows="4" placeholder="Opções, uma por linha: Título|Descrição|targetNodeId"></textarea>
+                    <input id="builder-node-image" placeholder="Imagem do bloco">
+                    <input id="builder-node-music" placeholder="Música do bloco">
+                    <button class="btn ghost" type="submit">Aplicar bloco</button>
+                  </form>
+                  <div id="builder-versions-list" class="stack-list"></div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div id="admin-tab-chapters" class="admin-panel">
@@ -361,6 +568,6 @@
   <div id="toast" class="toast hidden"></div>
   <div id="loading" class="loading hidden">Carregando...</div>
 
-  <script type="module" src="/main.js"></script>
+  <script type="module" src="/main.js?v=20260423c"></script>
 </body>
 </html>

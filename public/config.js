@@ -5,7 +5,12 @@ export const DEFAULT_PROMPTS_BY_NAME = {
   session_summary: { label: 'Resumo da sessão', content: 'Resuma a rodada em tom objetivo e dramático, destacando eventos, riscos e desdobramentos.' },
   impact_individual: { label: 'Impacto individual', content: 'Descreva impacto individual por personagem considerando classe, atributos e decisão tomada.' },
   impact_global: { label: 'Impacto global', content: 'Descreva impacto global na história, no mundo e no estado do grupo.' },
-  fallback: { label: 'Fallback', content: 'Se faltar contexto, gere um resultado conservador, coerente e jogável.' }
+  fallback: { label: 'Fallback', content: 'Se faltar contexto, gere um resultado conservador, coerente e jogável.' },
+  builder_structure_base: { label: 'Builder base', content: 'Gere uma estrutura curta de historia em JSON para um builder narrativo.' },
+  adapt_intro_characters: { label: 'Ajuste de inicio', content: 'Adapte a abertura ao grupo atual em poucas linhas e mantendo o primeiro bloco.' },
+  transition_blocks: { label: 'Transicao de blocos', content: 'Conecte o bloco atual ao proximo com continuidade curta e objetiva.' },
+  consolidate_decisions: { label: 'Consolidacao de decisoes', content: 'Consolide as decisoes da rodada em JSON curto, sem loops e aproximando o grupo do final.' },
+  finalize_story: { label: 'Finalizacao da historia', content: 'Feche a historia de forma coerente, curta e definitiva em JSON.' }
 };
 
 export const appState = {

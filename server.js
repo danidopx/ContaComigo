@@ -16,6 +16,9 @@ import consolidateRoundHandler from './api/consolidate-round.js';
 import generateChapterHandler from './api/generate-chapter.js';
 import currentStateHandler from './api/current-state.js';
 import adminCrudHandler from './api/admin-crud.js';
+import storyBuilderHandler from './api/story-builder.js';
+import sessionChatHandler from './api/session-chat.js';
+import sessionRollHandler from './api/session-roll.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,7 +38,10 @@ const apiRoutes = {
   '/api/consolidate-round': consolidateRoundHandler,
   '/api/generate-chapter': generateChapterHandler,
   '/api/current-state': currentStateHandler,
-  '/api/admin-crud': adminCrudHandler
+  '/api/admin-crud': adminCrudHandler,
+  '/api/story-builder': storyBuilderHandler,
+  '/api/session-chat': sessionChatHandler,
+  '/api/session-roll': sessionRollHandler
 };
 
 const contentTypes = {
@@ -95,6 +101,11 @@ async function serveStatic(res, pathname) {
     const extension = path.extname(target).toLowerCase();
     res.statusCode = 200;
     res.setHeader('Content-Type', contentTypes[extension] || 'application/octet-stream');
+    if (extension === '.html' || extension === '.js' || extension === '.css') {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
     res.end(file);
     return true;
   } catch {

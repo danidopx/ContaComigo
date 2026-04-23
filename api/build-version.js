@@ -140,7 +140,7 @@ export default async function handler(req, res) {
     try {
         const persistedVersion = await getCurrentVersion(environmentName);
         if (persistedVersion?.current_version) {
-            currentVersion = persistedVersion.current_version;
+            currentVersion = normalizeVersion(persistedVersion.current_version);
             versionSource = persistedVersion.source || 'database';
             syncStatus = 'loaded_from_database';
         } else if (commitSha) {

@@ -1,4 +1,5 @@
-import { dbInsert, dbPatch, dbSelect, getUserFromRequest, handleOptions, json, logSessionEvent } from './_lib.js';
+import { dbInsert, dbPatch, dbSelect, getSessionBundle, getUserFromRequest, handleOptions, json, logSessionEvent } from './_lib.js';
+import { maybeAdaptIntro } from './_narrative.js';
 
 export default async function handler(req, res) {
   if (handleOptions(req, res)) return;
@@ -92,6 +93,8 @@ export default async function handler(req, res) {
 
     await dbPatch('game_sessions', { id: `eq.${sessionId}` }, { status: 'active' }, 'return=minimal');
     await logSessionEvent(sessionId, 'character_saved', { userId: user.id, characterId: character.id, playerCharacterId: playerCharacter.id });
+    const bundle = await getSessionBundle(sessionId);
+    await maybeAdaptIntro(sessionId, bundle).catch(() => null);
     return json(res, 200, { character, playerCharacter });
   } catch (error) {
     return json(res, 500, { error: error instanceof Error ? error.message : String(error) });
