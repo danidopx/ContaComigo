@@ -42,6 +42,11 @@ h1, h2, h3, p { margin-top: 0; }
   grid-auto-columns: minmax(260px, 320px);
   overflow-x: auto;
   padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+.story-carousel .story-card {
+  scroll-snap-align: start;
 }
 .story-card h3, .stack-item h4 { margin-bottom: 8px; }
 .layout-grid { display: grid; grid-template-columns: 280px 1fr; gap: 20px; }

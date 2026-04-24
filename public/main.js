@@ -31,6 +31,7 @@ import { renderSessionTools } from './session-tools.js';
 let lastConsolidation = null;
 let appReady = false;
 let sessionFeedTimer = null;
+let landingCarouselTimer = null;
 let adminStoriesCache = [];
 let selectedAdminStoryId = '';
 
@@ -64,6 +65,10 @@ function updateLandingActions() {
   if (landingAdmin) {
     landingAdmin.classList.toggle('hidden', !(appState.user && appState.isAdmin));
   }
+
+  ['btn-nav-master', 'btn-nav-characters', 'btn-nav-messages'].forEach(id => {
+    document.getElementById(id)?.classList.toggle('hidden', !appState.user);
+  });
 }
 
 function updateHeader() {
@@ -111,6 +116,7 @@ async function refreshDashboard() {
       toast('Sessão criada.');
       await openSession(created.session.id);
     });
+    initLandingCarousel();
     renderSessions(document.getElementById('sessions-list'), sessions, openSession, async sessionId => {
       await joinSession(sessionId);
       toast('Você entrou na sessão.');
@@ -159,6 +165,29 @@ async function openSession(sessionId) {
   } finally {
     setLoading(false);
   }
+}
+
+function initLandingCarousel() {
+  const carousel = document.getElementById('landing-stories-list');
+  if (!carousel) return;
+  clearInterval(landingCarouselTimer);
+  if (carousel.scrollWidth <= carousel.clientWidth) return;
+
+  let paused = false;
+  carousel.addEventListener('mouseenter', () => { paused = true; }, { once: true });
+  carousel.addEventListener('mouseleave', () => {
+    paused = false;
+    initLandingCarousel();
+  }, { once: true });
+
+  landingCarouselTimer = setInterval(() => {
+    if (paused) return;
+    const nextLeft = carousel.scrollLeft + 320;
+    carousel.scrollTo({
+      left: nextLeft >= carousel.scrollWidth - carousel.clientWidth ? 0 : nextLeft,
+      behavior: 'smooth'
+    });
+  }, 4500);
 }
 
 async function handleAuthChange(user) {
@@ -526,6 +555,20 @@ function bindButtons() {
   });
   document.getElementById('btn-open-login').addEventListener('click', () => showScreen('screen-login'));
   document.getElementById('btn-home').addEventListener('click', () => showScreen('screen-landing'));
+  document.getElementById('btn-nav-play')?.addEventListener('click', () => {
+    document.getElementById('landing-stories-list')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  document.getElementById('btn-nav-master')?.addEventListener('click', async () => {
+    showScreen('screen-admin');
+    activateAdminTab('builder');
+    await loadAdmin();
+  });
+  document.getElementById('btn-nav-characters')?.addEventListener('click', () => showScreen('screen-character'));
+  document.getElementById('btn-nav-messages')?.addEventListener('click', () => {
+    if (appState.currentSession?.id) showScreen('screen-chapter');
+    else showScreen('screen-dashboard');
+  });
+  document.getElementById('btn-nav-account')?.addEventListener('click', () => showScreen(appState.user ? 'screen-dashboard' : 'screen-login'));
   document.getElementById('btn-open-dashboard').addEventListener('click', () => showScreen('screen-dashboard'));
   document.getElementById('btn-landing-admin').addEventListener('click', async () => {
     showScreen('screen-admin');
