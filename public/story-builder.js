@@ -400,9 +400,9 @@ function renderStructureList() {
   container.innerHTML = nodes.length === 0
     ? '<div class="stack-item">Nenhuma estrutura gerada ainda.</div>'
     : nodes.map((node, index) => `
-      <article class="stack-item structure-item ${node.id === builderState.selectedNodeId ? 'active' : ''}">
+      <article class="stack-item structure-item ${structureClass(node.type)} ${node.id === builderState.selectedNodeId ? 'active' : ''}" data-structure-node-id="${node.id}">
         <div class="structure-item-head">
-          <strong>${escapeHtml(node.data?.title || labelByType(node.type))}</strong>
+          <strong><span class="drag-handle" aria-hidden="true">::</span>${escapeHtml(node.data?.title || labelByType(node.type))}</strong>
           <span>${escapeHtml(node.type)}</span>
         </div>
         <p>${escapeHtml(node.data?.text || 'Sem descrição.')}</p>
@@ -428,6 +428,21 @@ function renderStructureList() {
   container.querySelectorAll('[data-structure-remove]').forEach(button => button.addEventListener('click', () => {
     removeNode(button.dataset.structureRemove);
   }));
+  initStructureSortable(container);
+}
+
+function initStructureSortable(container) {
+  if (!window.Sortable || container.dataset.sortableReady === 'true') return;
+  window.Sortable.create(container, {
+    animation: 160,
+    handle: '.drag-handle',
+    draggable: '[data-structure-node-id]',
+    onEnd: () => {
+      const orderedIds = Array.from(container.querySelectorAll('[data-structure-node-id]')).map(item => item.dataset.structureNodeId);
+      reorderNodes(orderedIds);
+    }
+  });
+  container.dataset.sortableReady = 'true';
 }
 
 function renderDecisionList() {
@@ -575,6 +590,24 @@ function moveNode(nodeId, direction) {
   renderDecisionList();
   renderFinalSummary();
   persistDraft();
+}
+
+function reorderNodes(orderedIds) {
+  const nodes = builderState.payload.builderState.nodes || [];
+  const byId = new Map(nodes.map(node => [node.id, node]));
+  builderState.payload.builderState.nodes = orderedIds.map(id => byId.get(id)).filter(Boolean);
+  updateNodePositions();
+  ensureEdges();
+  renderBuilderCanvas();
+  renderDecisionList();
+  renderFinalSummary();
+  persistDraft();
+}
+
+function structureClass(type) {
+  if (type === 'decisao_grupo') return 'structure-group';
+  if (type === 'decisao_pessoal') return 'structure-personal';
+  return '';
 }
 
 function removeNode(nodeId) {

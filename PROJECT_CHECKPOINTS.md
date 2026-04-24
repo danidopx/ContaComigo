@@ -29,8 +29,17 @@ arquivos_afetados:
 - PROJECT_CHECKPOINTS.md
 === END CHECKPOINT ===
 
+=== CHECKPOINT FASE 4 ===
+status: completo
+proximo_passo: FASE 5 - Personagens com CRUD, atributos e compatibilidade
+arquivos_afetados:
+- public/index.html
+- public/story-builder.js
+- public/style.css
+- PROJECT_CHECKPOINTS.md
+=== END CHECKPOINT ===
+
 Sequencia pendente:
-- FASE 4 - Builder Visual: SortableJS e persistencia da estrutura.
 - FASE 5 - Personagens: CRUD, atributos e compatibilidade.
 - FASE 6 - Jogar: escolher historia/personagem e integrar sessoes.
 - FASE 7 - Mensagens: lista, chat basico e mensagens prontas.

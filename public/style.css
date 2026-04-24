@@ -266,6 +266,27 @@ textarea { resize: vertical; }
 .structure-item.active {
   outline: 2px solid rgba(17, 94, 89, 0.22);
 }
+.structure-item {
+  cursor: default;
+}
+.structure-group {
+  border-color: rgba(17, 94, 89, 0.34);
+  background: #dceeea;
+}
+.structure-personal {
+  border-color: rgba(184, 118, 45, 0.34);
+  background: #f3e3cf;
+}
+.drag-handle {
+  display: inline-flex;
+  margin-right: 8px;
+  color: var(--muted);
+  cursor: grab;
+  font-weight: 700;
+}
+.sortable-ghost {
+  opacity: 0.45;
+}
 .structure-item-head {
   display: flex;
   justify-content: space-between;
