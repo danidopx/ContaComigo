@@ -138,10 +138,12 @@ export function renderSummary(state, consolidation) {
 }
 
 export function renderAdminStories(container, items, actions = {}) {
+  if (!container) return;
+  const selectedId = actions.selectedId || '';
   container.innerHTML = items.length === 0
     ? '<div class="stack-item">Nenhuma história encontrada.</div>'
     : items.map(item => `
-      <article class="stack-item story-admin-card">
+      <article class="stack-item story-admin-card ${item.id === selectedId ? 'selected' : ''}" data-admin-story-select="${item.id}">
         <div class="story-admin-head">
           <div>
             <h4>${escapeHtml(item.title || item.id)}</h4>
@@ -168,6 +170,13 @@ export function renderAdminStories(container, items, actions = {}) {
 
   container.querySelectorAll('[data-admin-story-delete]').forEach(button => {
     button.addEventListener('click', () => actions.onDelete?.(button.dataset.adminStoryDelete));
+  });
+
+  container.querySelectorAll('[data-admin-story-select]').forEach(card => {
+    card.addEventListener('click', event => {
+      if (event.target.closest('button')) return;
+      actions.onSelect?.(card.dataset.adminStorySelect);
+    });
   });
 }
 

@@ -25,13 +25,14 @@ import {
 } from './api.js';
 import { bindSimpleNavigation, formToJson, setLoading, showScreen, toast } from './ui.js';
 import { renderAdminList, renderAdminStories, renderChapter, renderCharacterLibrary, renderLobby, renderSessions, renderStories, renderSummary } from './cv-builder.js';
-import { initStoryBuilder, loadBuilderPayload, setBuilderStories } from './story-builder.js';
+import { initStoryBuilder, loadBuilderPayload, selectBuilderStory, setBuilderStories } from './story-builder.js';
 import { renderSessionTools } from './session-tools.js';
 
 let lastConsolidation = null;
 let appReady = false;
 let sessionFeedTimer = null;
 let adminStoriesCache = [];
+let selectedAdminStoryId = '';
 
 function updateLoginStatus(message = '', tone = '') {
   const node = document.getElementById('login-status');
@@ -88,6 +89,17 @@ function updateHeader() {
   openAdmin.classList.toggle('hidden', !adminVisible);
   updateAuthScreens();
   updateLandingActions();
+}
+
+function activateAdminTab(tabName) {
+  document.querySelectorAll('.tab').forEach(node => node.classList.toggle('active', node.dataset.adminTab === tabName));
+  document.querySelectorAll('.admin-panel').forEach(node => node.classList.toggle('active', node.id === `admin-tab-${tabName}`));
+}
+
+function ensureAutocompleteAttributes() {
+  document.querySelectorAll('input, textarea, select').forEach(node => {
+    if (!node.hasAttribute('autocomplete')) node.setAttribute('autocomplete', 'off');
+  });
 }
 
 async function refreshDashboard() {
@@ -178,12 +190,47 @@ async function loadAdmin() {
 
     adminStoriesCache = storiesPayload.items || [];
     renderAdminStories(document.getElementById('admin-stories-list'), adminStoriesCache, {
-      onEdit: storyId => populateStoryForm(adminStoriesCache.find(item => item.id === storyId)),
+      selectedId: selectedAdminStoryId,
+      onSelect: storyId => {
+        selectedAdminStoryId = storyId;
+        selectBuilderStory(storyId);
+        loadStoryBuilder(storyId).then(loadBuilderPayload).catch(() => null);
+        loadAdmin();
+      },
+      onEdit: storyId => {
+        selectedAdminStoryId = storyId;
+        populateStoryForm(adminStoriesCache.find(item => item.id === storyId));
+        activateAdminTab('stories');
+      },
       onDelete: async storyId => {
         const story = adminStoriesCache.find(item => item.id === storyId);
         const confirmed = window.confirm(`Excluir a história "${story?.title || 'sem título'}"?`);
         if (!confirmed) return;
         await adminCrud('stories', 'DELETE', { id: storyId });
+        toast('História excluída.');
+        resetStoryForm();
+        await loadAdmin();
+      }
+    });
+    renderAdminStories(document.getElementById('builder-stories-list'), adminStoriesCache, {
+      selectedId: selectedAdminStoryId,
+      onSelect: storyId => {
+        selectedAdminStoryId = storyId;
+        selectBuilderStory(storyId);
+        loadStoryBuilder(storyId).then(loadBuilderPayload).catch(error => toast(error.message || 'Falha ao carregar builder.'));
+        loadAdmin();
+      },
+      onEdit: storyId => {
+        selectedAdminStoryId = storyId;
+        populateStoryForm(adminStoriesCache.find(item => item.id === storyId));
+        activateAdminTab('stories');
+      },
+      onDelete: async storyId => {
+        const story = adminStoriesCache.find(item => item.id === storyId);
+        const confirmed = window.confirm(`Excluir a história "${story?.title || 'sem título'}"?`);
+        if (!confirmed) return;
+        await adminCrud('stories', 'DELETE', { id: storyId });
+        selectedAdminStoryId = selectedAdminStoryId === storyId ? '' : selectedAdminStoryId;
         toast('História excluída.');
         resetStoryForm();
         await loadAdmin();
@@ -196,10 +243,10 @@ async function loadAdmin() {
     renderAdminList(document.getElementById('admin-sessions-list'), sessionsPayload.items || [], 'title', 'status');
     renderAdminList(document.getElementById('admin-prompts-list'), promptsPayload, 'label', 'prompt_name');
     setBuilderStories(storiesPayload.items || []);
-    const firstStoryId = document.getElementById('builder-story-select')?.value;
-    if (firstStoryId) {
+    const selectedStoryId = document.getElementById('builder-story-select')?.value;
+    if (selectedStoryId) {
       try {
-        const builderPayload = await loadStoryBuilder(firstStoryId);
+        const builderPayload = await loadStoryBuilder(selectedStoryId);
         loadBuilderPayload(builderPayload);
       } catch (error) {
         console.warn('Builder indisponível no momento:', error);
@@ -238,9 +285,10 @@ function populateStoryForm(story) {
   form.querySelector('[name="tone_style"]').value = story.tone_style || '';
   form.querySelector('[name="is_published"]').checked = Boolean(story.is_published);
   document.getElementById('admin-story-submit').textContent = 'Atualizar história';
+  activateAdminTab('stories');
 }
 
-function resetStoryForm() {
+function resetStoryForm({ activate = true } = {}) {
   const form = document.getElementById('admin-story-form');
   form.reset();
   form.querySelector('[name="id"]').value = '';
@@ -251,6 +299,9 @@ function resetStoryForm() {
   form.querySelector('[name="character_compatibility"]').value = 'generic-flex';
   form.querySelector('[name="is_published"]').checked = true;
   document.getElementById('admin-story-submit').textContent = 'Salvar história';
+  selectedAdminStoryId = '';
+  selectBuilderStory('');
+  if (activate) activateAdminTab('stories');
 }
 
 async function refreshSessionTools(sessionId) {
@@ -343,6 +394,15 @@ function bindForms() {
     resetStoryForm();
   });
 
+  document.getElementById('admin-story-edit-selected')?.addEventListener('click', () => {
+    const story = adminStoriesCache.find(item => item.id === selectedAdminStoryId);
+    if (!story) {
+      toast('Selecione uma história na lista para editar.');
+      return;
+    }
+    populateStoryForm(story);
+  });
+
   document.getElementById('admin-chapter-form').addEventListener('submit', async event => {
     event.preventDefault();
     await adminCrud('story_chapters', 'POST', { data: formToJson(event.currentTarget) });
@@ -396,6 +456,7 @@ function bindForms() {
   initStoryBuilder({
     onLoadStory: async storyId => {
       if (!storyId) return;
+      selectedAdminStoryId = storyId;
       setLoading(true, 'Carregando builder...');
       try {
         const payload = await loadStoryBuilder(storyId);
@@ -458,6 +519,11 @@ function bindButtons() {
   bindAdminTabs();
 
   document.getElementById('btn-start-login').addEventListener('click', () => showScreen('screen-login'));
+  document.getElementById('builder-new-story')?.addEventListener('click', () => {
+    resetStoryForm();
+    activateAdminTab('stories');
+    document.getElementById('admin-story-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   document.getElementById('btn-open-login').addEventListener('click', () => showScreen('screen-login'));
   document.getElementById('btn-home').addEventListener('click', () => showScreen('screen-landing'));
   document.getElementById('btn-open-dashboard').addEventListener('click', () => showScreen('screen-dashboard'));
@@ -526,7 +592,8 @@ async function bootstrap() {
     await clearLegacyFrontendCache();
     bindButtons();
     bindForms();
-    resetStoryForm();
+    resetStoryForm({ activate: false });
+    ensureAutocompleteAttributes();
     await initPublicConfig();
     appReady = true;
     updateLoginStatus('Login Google pronto.', 'success');

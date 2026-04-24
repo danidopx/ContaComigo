@@ -53,13 +53,15 @@ export function setBuilderStories(stories) {
 
   select.innerHTML = '<option value="">Selecione uma história</option>'
     + builderState.stories.map(story => `<option value="${story.id}">${escapeHtml(story.title)}</option>`).join('');
-
-  if (!builderState.storyId && builderState.stories[0]) {
-    builderState.storyId = builderState.stories[0].id;
-  }
-
   select.value = builderState.storyId;
-  hydrateFromStory(builderState.stories.find(item => item.id === builderState.storyId));
+  renderStoryGate();
+}
+
+export function selectBuilderStory(storyId) {
+  builderState.storyId = storyId || '';
+  const select = document.getElementById('builder-story-select');
+  if (select) select.value = builderState.storyId;
+  renderStoryGate();
 }
 
 export function loadBuilderPayload(payload) {
@@ -83,6 +85,7 @@ export function loadBuilderPayload(payload) {
   renderDecisionList();
   renderBuilderVersions();
   renderFinalSummary();
+  renderStoryGate();
 }
 
 function bindCoreActions({ onLoadStory, onGenerateBase, onSaveBuilder, onPublishBuilder }) {
@@ -93,6 +96,7 @@ function bindCoreActions({ onLoadStory, onGenerateBase, onSaveBuilder, onPublish
 
   storySelect?.addEventListener('change', async event => {
     builderState.storyId = event.currentTarget.value;
+    renderStoryGate();
     hydrateFromStory(builderState.stories.find(item => item.id === builderState.storyId));
     if (builderState.storyId) await onLoadStory(builderState.storyId);
   });
@@ -154,23 +158,58 @@ function bindCoreActions({ onLoadStory, onGenerateBase, onSaveBuilder, onPublish
     });
   });
 
-  document.getElementById('builder-save')?.addEventListener('click', async () => {
-    syncAllStepData();
-    await onSaveBuilder(builderState.storyId, collectBuilderMeta());
+  document.querySelectorAll('[data-builder-save]').forEach(button => {
+    button.addEventListener('click', async () => {
+      syncAllStepData();
+      await onSaveBuilder(builderState.storyId, collectBuilderMeta());
+    });
   });
 
-  document.getElementById('builder-publish')?.addEventListener('click', async () => {
-    syncAllStepData();
-    await onPublishBuilder(builderState.storyId, collectBuilderMeta());
+  document.querySelectorAll('[data-builder-publish]').forEach(button => {
+    button.addEventListener('click', async () => {
+      syncAllStepData();
+      await onPublishBuilder(builderState.storyId, collectBuilderMeta());
+    });
   });
 
   document.getElementById('builder-guided-fill-template')?.addEventListener('click', () => {
     const field = document.getElementById('builder-guided-description');
-    field.value = GUIDED_TEMPLATE;
+    const asPrompt = document.getElementById('builder-guided-as-prompt')?.checked;
+    field.value = asPrompt ? buildPromptReadyTemplate() : GUIDED_TEMPLATE;
   });
 
   document.getElementById('builder-add-group-decision')?.addEventListener('click', () => appendNode('decisao_grupo'));
   document.getElementById('builder-add-personal-decision')?.addEventListener('click', () => appendNode('decisao_pessoal'));
+}
+
+function renderStoryGate() {
+  document.querySelectorAll('[data-builder-needs-story]').forEach(node => {
+    node.classList.toggle('hidden', !builderState.storyId);
+  });
+  const empty = document.getElementById('builder-empty-state');
+  if (empty) empty.classList.toggle('hidden', Boolean(builderState.storyId));
+}
+
+function buildPromptReadyTemplate() {
+  return `Copie este prompt em uma IA e ajuste as informacoes entre colchetes para gerar a descricao inicial da historia:
+
+Crie uma descricao estruturada para um RPG narrativo usando exatamente estes campos:
+Titulo provisorio: [nome da campanha]
+Genero: [fantasia, horror, sci-fi, investigacao, drama etc.]
+Tom: [epico, sombrio, leve, tenso etc.]
+Ambientacao: [mundo, epoca, local e atmosfera]
+Tema central: [ideia principal]
+Tipo de jornada: [3 atos, jornada do heroi, missao, sobrevivencia etc.]
+Quantidade de jogadores: [min-max]
+Faixa de duracao: [curta, media, longa]
+Resumo da premissa: [conflito principal]
+Como a historia comeca: [cena inicial]
+Possiveis conflitos: [riscos e dilemas]
+Tipo de antagonista: [boss, faccao, entidade, sistema etc.]
+Possiveis reviravoltas: [surpresas]
+Como imagina o final: [final desejado ou possibilidades]
+Referencias opcionais: [obras, estilos, jogos]
+Restricoes e observacoes: [limites, temas proibidos, regras]`;
 }
 
 function buildGuidedInput() {
