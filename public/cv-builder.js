@@ -32,6 +32,8 @@ export function renderCharacterLibrary(state, onSelect) {
         <h4>${escapeHtml(item.name)}</h4>
         <p>${escapeHtml(item.class_name || item.sheet_template || 'Ficha flexível')}</p>
         <p>Sistema: ${escapeHtml(item.system_name || 'generic')}</p>
+        <p>FR ${item.attributes?.strength || 0} | DZ ${item.attributes?.agility || 0} | IN ${item.attributes?.intelligence || 0} | CN ${item.attributes?.charisma || 0}</p>
+        <p>Compatível: ${escapeHtml(item.custom_fields?.story_type || item.sheet_template || 'generic-flex')}</p>
         <button class="btn secondary" data-character-select="${item.id}">Usar esta ficha</button>
       </article>
     `).join('');

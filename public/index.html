@@ -166,16 +166,30 @@
           <div id="character-library" class="stack-list"></div>
           <form id="character-form" class="form-grid">
             <input name="name" placeholder="Nome do personagem" required>
-            <input name="system_name" placeholder="Sistema associado" value="generic">
-            <input name="sheet_template" placeholder="Compatibilidade de ficha" value="generic-flex">
+            <select name="system_name">
+              <option value="generic">Genérico</option>
+              <option value="medieval">Medieval</option>
+              <option value="moderno">Moderno</option>
+              <option value="terror">Terror</option>
+              <option value="espaco">Espaço</option>
+            </select>
+            <select name="sheet_template">
+              <option value="generic-flex">Ficha flexível</option>
+              <option value="d20-basic">d20 básico</option>
+              <option value="horror-lite">Horror lite</option>
+            </select>
             <input name="class_name" placeholder="Classe / arquétipo" required>
             <input name="origin" placeholder="Origem" required>
             <textarea name="description" placeholder="Descrição curta" rows="2"></textarea>
             <textarea name="backstory" placeholder="História resumida" rows="4"></textarea>
-            <input type="number" name="strength" min="0" max="10" placeholder="Força">
-            <input type="number" name="intelligence" min="0" max="10" placeholder="Inteligência">
-            <input type="number" name="charisma" min="0" max="10" placeholder="Carisma">
-            <input type="number" name="agility" min="0" max="10" placeholder="Agilidade">
+            <input name="image_url" placeholder="Imagem do personagem (URL ou prompt IA)">
+            <input name="story_type" placeholder="Tipo de história compatível: medieval, moderno, terror, espaço">
+            <input name="abilities" placeholder="Habilidades comuns, separadas por vírgula">
+            <input name="knowledge" placeholder="Conhecimentos comuns, separados por vírgula">
+            <input type="number" name="strength" min="0" max="10" placeholder="FR">
+            <input type="number" name="agility" min="0" max="10" placeholder="DZ">
+            <input type="number" name="intelligence" min="0" max="10" placeholder="IN">
+            <input type="number" name="charisma" min="0" max="10" placeholder="CN">
             <textarea name="custom_fields" placeholder='Campos customizáveis em JSON, ex: {"mana":3,"natureza":"bruxo"}' rows="3"></textarea>
             <button class="btn" type="submit">Salvar personagem</button>
           </form>

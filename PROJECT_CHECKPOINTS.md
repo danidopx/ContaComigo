@@ -39,8 +39,17 @@ arquivos_afetados:
 - PROJECT_CHECKPOINTS.md
 === END CHECKPOINT ===
 
+=== CHECKPOINT FASE 5 ===
+status: completo
+proximo_passo: FASE 6 - Jogar escolhendo historia/personagem e integrando sessoes
+arquivos_afetados:
+- api/create-character.js
+- public/index.html
+- public/cv-builder.js
+- PROJECT_CHECKPOINTS.md
+=== END CHECKPOINT ===
+
 Sequencia pendente:
-- FASE 5 - Personagens: CRUD, atributos e compatibilidade.
 - FASE 6 - Jogar: escolher historia/personagem e integrar sessoes.
 - FASE 7 - Mensagens: lista, chat basico e mensagens prontas.
 - FASE 8 - Conta: nome/apelido e validacao.

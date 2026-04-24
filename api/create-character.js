@@ -19,6 +19,10 @@ export default async function handler(req, res) {
       description,
       system_name,
       sheet_template,
+      image_url,
+      story_type,
+      abilities,
+      knowledge,
       custom_fields,
       strength,
       intelligence,
@@ -55,6 +59,14 @@ export default async function handler(req, res) {
       agility: Number(agility || 0)
     };
 
+    const extraFields = {
+      ...parseCustomFields(custom_fields),
+      image_url: image_url || '',
+      story_type: story_type || system_name || story?.system_base || 'generic',
+      abilities: parseList(abilities),
+      knowledge: parseList(knowledge)
+    };
+
     const libraryPayload = {
       user_id: user.id,
       name: imported?.name || name,
@@ -64,8 +76,8 @@ export default async function handler(req, res) {
       system_name: imported?.system_name || system_name || story?.system_base || 'generic',
       sheet_template: imported?.sheet_template || sheet_template || story?.character_compatibility || 'generic-flex',
       attributes,
-      custom_fields: imported?.custom_fields || parseCustomFields(custom_fields),
-      tags: imported?.tags || []
+      custom_fields: imported?.custom_fields || extraFields,
+      tags: imported?.tags || parseList(story_type || system_name)
     };
 
     const playerCharacter = imported
@@ -109,4 +121,10 @@ function parseCustomFields(raw) {
   } catch {
     return { notes: String(raw) };
   }
+}
+
+function parseList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return String(value).split(',').map(item => item.trim()).filter(Boolean);
 }
