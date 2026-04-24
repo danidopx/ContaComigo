@@ -181,6 +181,19 @@
         </div>
       </section>
 
+      <section id="screen-master" class="screen">
+        <div class="card centered">
+          <p class="eyebrow">Área Mestre</p>
+          <h2>Entre e crie ou edite sua história</h2>
+          <p class="muted-copy">Use o builder para gerar uma base assistida por IA ou edite manualmente os dados da história.</p>
+          <div class="actions quick-access-actions">
+            <button id="btn-master-builder" class="btn">Criar com Builder</button>
+            <button id="btn-master-manual" class="btn secondary">Criar Manual</button>
+            <button data-nav="screen-landing" class="btn ghost">Voltar</button>
+          </div>
+        </div>
+      </section>
+
       <section id="screen-chapter" class="screen">
         <div class="card">
           <div class="section-head">
@@ -282,14 +295,14 @@
             <button data-nav="screen-dashboard" class="btn ghost">Voltar</button>
           </div>
           <div class="admin-tabs">
-            <button class="tab active" data-admin-tab="builder">Builder</button>
+            <button class="tab active" data-admin-tab="builder" title="Builder IA assistido para gerar, revisar, estruturar e finalizar histórias.">Builder</button>
             <button class="tab" data-admin-tab="stories">Histórias</button>
             <button class="tab" data-admin-tab="chapters">Capítulos</button>
-            <button class="tab" data-admin-tab="decisions">Decisões</button>
-            <button class="tab" data-admin-tab="prompts">Prompts</button>
+            <button class="tab" data-admin-tab="decisions" title="Pontos de escolha que guiam impactos narrativos e pessoais.">Decisões</button>
+            <button class="tab" data-admin-tab="prompts" title="Prompt mestre e modelos usados pela IA para gerar e validar conteúdo.">Prompts</button>
             <button class="tab" data-admin-tab="users">Usuários</button>
-            <button class="tab" data-admin-tab="rules">Regras</button>
-            <button class="tab" data-admin-tab="sessions">Sessões</button>
+            <button class="tab" data-admin-tab="rules" title="Regras narrativas e limites usados pelas histórias.">Regras</button>
+            <button class="tab" data-admin-tab="sessions" title="Sessões ativas ou criadas pelos jogadores.">Sessões</button>
           </div>
 
           <div id="admin-tab-stories" class="admin-panel">

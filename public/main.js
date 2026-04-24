@@ -620,9 +620,15 @@ function bindButtons() {
   document.getElementById('btn-nav-play')?.addEventListener('click', () => {
     document.getElementById('landing-stories-list')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
-  document.getElementById('btn-nav-master')?.addEventListener('click', async () => {
+  document.getElementById('btn-nav-master')?.addEventListener('click', () => showScreen('screen-master'));
+  document.getElementById('btn-master-builder')?.addEventListener('click', async () => {
     showScreen('screen-admin');
     activateAdminTab('builder');
+    await loadAdmin();
+  });
+  document.getElementById('btn-master-manual')?.addEventListener('click', async () => {
+    showScreen('screen-admin');
+    activateAdminTab('stories');
     await loadAdmin();
   });
   document.getElementById('btn-nav-characters')?.addEventListener('click', () => showScreen('screen-character'));

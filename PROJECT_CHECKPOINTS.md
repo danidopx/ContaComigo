@@ -20,8 +20,16 @@ arquivos_afetados:
 - PROJECT_CHECKPOINTS.md
 === END CHECKPOINT ===
 
+=== CHECKPOINT FASE 3 ===
+status: completo
+proximo_passo: FASE 4 - Builder Visual com SortableJS e persistencia da estrutura
+arquivos_afetados:
+- public/index.html
+- public/main.js
+- PROJECT_CHECKPOINTS.md
+=== END CHECKPOINT ===
+
 Sequencia pendente:
-- FASE 3 - Area Mestre: builder/manual, stepper e validacoes.
 - FASE 4 - Builder Visual: SortableJS e persistencia da estrutura.
 - FASE 5 - Personagens: CRUD, atributos e compatibilidade.
 - FASE 6 - Jogar: escolher historia/personagem e integrar sessoes.
