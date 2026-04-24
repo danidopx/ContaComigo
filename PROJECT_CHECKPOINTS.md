@@ -10,8 +10,17 @@ arquivos_afetados:
 - PROJECT_CHECKPOINTS.md
 === END CHECKPOINT ===
 
+=== CHECKPOINT FASE 2 ===
+status: completo
+proximo_passo: FASE 3 - Area Mestre separada com builder/manual e stepper
+arquivos_afetados:
+- api/admin-crud.js
+- public/index.html
+- public/main.js
+- PROJECT_CHECKPOINTS.md
+=== END CHECKPOINT ===
+
 Sequencia pendente:
-- FASE 2 - Admin: manter Prompts e adicionar Gestao de Usuarios.
 - FASE 3 - Area Mestre: builder/manual, stepper e validacoes.
 - FASE 4 - Builder Visual: SortableJS e persistencia da estrutura.
 - FASE 5 - Personagens: CRUD, atributos e compatibilidade.

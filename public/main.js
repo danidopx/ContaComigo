@@ -207,13 +207,14 @@ async function loadAdmin() {
   if (!appState.isAdmin) return;
   setLoading(true, 'Carregando admin...');
   try {
-    const [storiesPayload, chaptersPayload, decisionsPayload, decisionOptionsPayload, rulesPayload, sessionsPayload, promptsPayload] = await Promise.all([
+    const [storiesPayload, chaptersPayload, decisionsPayload, decisionOptionsPayload, rulesPayload, sessionsPayload, usersPayload, promptsPayload] = await Promise.all([
       adminCrud('stories', 'GET', { scope: 'stories' }),
       adminCrud('story_chapters', 'GET', { scope: 'chapters' }),
       adminCrud('story_decision_points', 'GET', { scope: 'decisions' }),
       adminCrud('story_decision_options', 'GET', { scope: 'decisionOptions' }),
       adminCrud('story_rules', 'GET', { scope: 'rules' }),
       adminCrud('game_sessions', 'GET', { scope: 'sessions' }),
+      adminCrud('auth_users', 'GET', { scope: 'users' }),
       loadPromptConfigs()
     ]);
 
@@ -271,6 +272,7 @@ async function loadAdmin() {
     renderAdminList(document.getElementById('admin-rules-list'), rulesPayload.items || [], 'rule_name', 'rule_content');
     renderAdminList(document.getElementById('admin-sessions-list'), sessionsPayload.items || [], 'title', 'status');
     renderAdminList(document.getElementById('admin-prompts-list'), promptsPayload, 'label', 'prompt_name');
+    renderAdminUsers(document.getElementById('admin-users-list'), usersPayload.items || []);
     setBuilderStories(storiesPayload.items || []);
     const selectedStoryId = document.getElementById('builder-story-select')?.value;
     if (selectedStoryId) {
@@ -290,6 +292,66 @@ async function loadAdmin() {
   } finally {
     setLoading(false);
   }
+}
+
+function renderAdminUsers(container, users = []) {
+  if (!container) return;
+  container.innerHTML = users.length
+    ? users.map(user => {
+      const blocked = Boolean(user.banned_until && new Date(user.banned_until) > new Date());
+      return `
+        <article class="stack-item">
+          <div class="story-admin-head">
+            <div>
+              <h4>${escapeHtml(user.name || user.email || user.id)}</h4>
+              <p class="muted-copy">${escapeHtml(user.email || 'Sem e-mail')}</p>
+            </div>
+            <span class="story-admin-badge ${blocked ? 'is-draft' : 'is-live'}">${blocked ? 'Bloqueado' : 'Ativo'}</span>
+          </div>
+          <div class="story-admin-meta">
+            <span>Criado: ${formatDate(user.created_at)}</span>
+            <span>Último login: ${formatDate(user.last_sign_in_at)}</span>
+          </div>
+          <div class="actions">
+            <button class="btn secondary" data-admin-user-toggle="${user.id}" data-blocked="${blocked ? 'true' : 'false'}">${blocked ? 'Desbloquear' : 'Bloquear'}</button>
+            <button class="btn ghost" data-admin-user-delete="${user.id}">Deletar</button>
+          </div>
+        </article>
+      `;
+    }).join('')
+    : '<div class="stack-item">Nenhum usuário encontrado.</div>';
+
+  container.querySelectorAll('[data-admin-user-toggle]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const blocked = button.dataset.blocked === 'true';
+      await adminCrud('auth_users', 'PATCH', { id: button.dataset.adminUserToggle, data: { blocked: !blocked } });
+      toast(blocked ? 'Usuário desbloqueado.' : 'Usuário bloqueado.');
+      await loadAdmin();
+    });
+  });
+
+  container.querySelectorAll('[data-admin-user-delete]').forEach(button => {
+    button.addEventListener('click', async () => {
+      if (!window.confirm('Deletar este usuário?')) return;
+      await adminCrud('auth_users', 'DELETE', { id: button.dataset.adminUserDelete });
+      toast('Usuário deletado.');
+      await loadAdmin();
+    });
+  });
+}
+
+function escapeHtml(value = '') {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  })[char]);
+}
+
+function formatDate(value) {
+  return value ? new Date(value).toLocaleDateString('pt-BR') : 'Nunca';
 }
 
 function populateStoryForm(story) {
