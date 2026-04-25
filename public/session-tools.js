@@ -18,9 +18,10 @@ export function renderSessionTools({ messages = [], presets = [], rolls = [] }) 
   }
 
   if (presetBar) {
-    presetBar.innerHTML = presets.length === 0
-      ? '<span class="muted-copy">Sem mensagens prontas cadastradas.</span>'
-      : presets.map(item => `<button type="button" class="btn ghost" data-chat-preset="${encodeURIComponent(item)}">${escapeHtml(item)}</button>`).join('');
+    const quickMessages = presets.length ? presets : ['Ok, sua vez!', 'Está demorando @jogador'];
+    presetBar.innerHTML = quickMessages
+      .map(item => `<button type="button" class="btn ghost" data-chat-preset="${encodeURIComponent(item)}">${escapeHtml(item)}</button>`)
+      .join('');
   }
 
   if (rollList) {

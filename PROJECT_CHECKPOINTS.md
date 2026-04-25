@@ -59,8 +59,16 @@ arquivos_afetados:
 - PROJECT_CHECKPOINTS.md
 === END CHECKPOINT ===
 
+=== CHECKPOINT FASE 7 ===
+status: completo
+proximo_passo: FASE 8 - Conta com nome/apelido persistido e validacao
+arquivos_afetados:
+- public/session-tools.js
+- public/main.js
+- PROJECT_CHECKPOINTS.md
+=== END CHECKPOINT ===
+
 Sequencia pendente:
-- FASE 7 - Mensagens: lista, chat basico e mensagens prontas.
 - FASE 8 - Conta: nome/apelido e validacao.
 - FASE 9 - IA e Validacoes: prompts curtos e fallback manual.
 - FASE 10 - Midia leve: capa e metadados de som/imagem.

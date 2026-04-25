@@ -421,9 +421,18 @@ async function refreshSessionTools(sessionId) {
 
   document.querySelectorAll('[data-chat-preset]').forEach(button => {
     button.addEventListener('click', () => {
-      document.getElementById('session-chat-input').value = decodeURIComponent(button.dataset.chatPreset);
+      const message = decodeURIComponent(button.dataset.chatPreset).replaceAll('@jogador', getCurrentPlayerName());
+      document.getElementById('session-chat-input').value = message;
     });
   });
+}
+
+function getCurrentPlayerName() {
+  const currentPlayer = appState.currentState?.players?.find(player => player.user_id === appState.user?.id);
+  return currentPlayer?.profile?.full_name
+    || appState.user?.user_metadata?.full_name
+    || appState.user?.email
+    || 'jogador';
 }
 
 function startSessionFeedPolling(sessionId) {
