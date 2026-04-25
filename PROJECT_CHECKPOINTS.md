@@ -49,8 +49,17 @@ arquivos_afetados:
 - PROJECT_CHECKPOINTS.md
 === END CHECKPOINT ===
 
+=== CHECKPOINT FASE 6 ===
+status: completo
+proximo_passo: FASE 7 - Mensagens com lista por sessao, chat basico e mensagens prontas
+arquivos_afetados:
+- api/join-session.js
+- public/main.js
+- public/cv-builder.js
+- PROJECT_CHECKPOINTS.md
+=== END CHECKPOINT ===
+
 Sequencia pendente:
-- FASE 6 - Jogar: escolher historia/personagem e integrar sessoes.
 - FASE 7 - Mensagens: lista, chat basico e mensagens prontas.
 - FASE 8 - Conta: nome/apelido e validacao.
 - FASE 9 - IA e Validacoes: prompts curtos e fallback manual.

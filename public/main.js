@@ -112,6 +112,11 @@ async function refreshDashboard() {
   try {
     const [stories, sessions] = await Promise.all([loadStories(), loadMySessions()]);
     renderStories(document.getElementById('landing-stories-list'), stories, async storyId => {
+      if (!appState.user) {
+        toast('Entre com Google para começar a jogar.');
+        showScreen('screen-login');
+        return;
+      }
       const created = await createSession(storyId);
       toast('Sessão criada.');
       await openSession(created.session.id);
@@ -137,6 +142,13 @@ async function openSession(sessionId) {
       toast('Ficha vinculada à sessão.');
       await openSession(appState.currentSession.id);
     });
+
+    const currentPlayer = state.players?.find(player => player.user_id === appState.user?.id);
+    if (currentPlayer && !currentPlayer.character) {
+      toast('Selecione ou crie um personagem para esta história.');
+      showScreen('screen-character');
+      return;
+    }
 
     if (state.session?.status === 'waiting') {
       const status = await fetchSessionStatus(sessionId);

@@ -11,7 +11,7 @@ export function renderStories(container, stories, onCreate) {
         <p>${escapeHtml(story.summary || 'Sem resumo cadastrado.')}</p>
         <p>Jogadores: ${escapeHtml(story.min_players || 1)}-${escapeHtml(story.max_players || 4)}</p>
         <p>Ficha: ${escapeHtml(story.character_compatibility || 'generic-flex')}</p>
-        <button class="btn" data-story-create="${story.id}">Entrar na história</button>
+        <button class="btn" data-story-create="${story.id}">Escolher história</button>
       </article>
     `).join('');
 

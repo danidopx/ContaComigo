@@ -20,8 +20,9 @@ export default async function handler(req, res) {
     if (existing[0]) return json(res, 200, { player: existing[0], alreadyJoined: true });
 
     const players = await dbSelect('session_players', { select: 'id', session_id: `eq.${sessionId}` });
-    if (players.length >= Number(session.max_players || 4)) {
-      return json(res, 409, { error: 'Sessão já atingiu o limite de 4 jogadores.' });
+    const maxPlayers = Number(session.max_players || 4);
+    if (players.length >= maxPlayers) {
+      return json(res, 409, { error: `Sessão já atingiu o limite de ${maxPlayers} jogadores.` });
     }
 
     const [player] = await dbInsert('session_players', [{
