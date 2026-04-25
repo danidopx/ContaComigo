@@ -35,6 +35,23 @@ let landingCarouselTimer = null;
 let adminStoriesCache = [];
 let selectedAdminStoryId = '';
 
+function applyTheme(theme = 'light') {
+  const safeTheme = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = safeTheme;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', safeTheme === 'dark' ? '#101820' : '#1f2937');
+  const button = document.getElementById('btn-theme');
+  if (button) button.textContent = safeTheme === 'dark' ? 'Tema claro' : 'Tema escuro';
+  window.localStorage.setItem('contacomigo-theme', safeTheme);
+}
+
+function initTheme() {
+  const saved = window.localStorage.getItem('contacomigo-theme') || 'light';
+  applyTheme(saved);
+  document.getElementById('btn-theme')?.addEventListener('click', () => {
+    applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+  });
+}
+
 function updateLoginStatus(message = '', tone = '') {
   const node = document.getElementById('login-status');
   if (!node) return;
@@ -789,6 +806,7 @@ async function bootstrap() {
   setLoading(true, 'Inicializando aplicativo...');
   try {
     await clearLegacyFrontendCache();
+    initTheme();
     bindButtons();
     bindForms();
     resetStoryForm({ activate: false });

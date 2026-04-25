@@ -99,5 +99,15 @@ arquivos_afetados:
 - PROJECT_CHECKPOINTS.md
 === END CHECKPOINT ===
 
+=== CHECKPOINT FASE 11 ===
+status: completo
+proximo_passo: Revisao final e endurecimento pontual
+arquivos_afetados:
+- public/index.html
+- public/main.js
+- public/style.css
+- PROJECT_CHECKPOINTS.md
+=== END CHECKPOINT ===
+
 Sequencia pendente:
-- FASE 11 - Tema: claro/escuro persistido.
+- Revisao final: testar fluxo completo em ambiente publicado.
