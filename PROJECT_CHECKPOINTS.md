@@ -77,7 +77,16 @@ arquivos_afetados:
 - PROJECT_CHECKPOINTS.md
 === END CHECKPOINT ===
 
+=== CHECKPOINT FASE 9 ===
+status: completo
+proximo_passo: FASE 10 - Midia leve com capa e metadata de som/imagem
+arquivos_afetados:
+- public/config.js
+- public/main.js
+- api/story-builder.js
+- PROJECT_CHECKPOINTS.md
+=== END CHECKPOINT ===
+
 Sequencia pendente:
-- FASE 9 - IA e Validacoes: prompts curtos e fallback manual.
 - FASE 10 - Midia leve: capa e metadados de som/imagem.
 - FASE 11 - Tema: claro/escuro persistido.

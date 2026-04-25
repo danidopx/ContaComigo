@@ -121,7 +121,7 @@ function extractStoryPatch(settings = {}, fallbackStory = {}) {
     summary: storyForm.summary || fallbackStory.summary || '',
     lore_description: storyForm.lore_description || fallbackStory.lore_description || '',
     cover_text: storyForm.cover_text || fallbackStory.cover_text || '',
-    cover_url: storyForm.cover_url || fallbackStory.cover_url || '',
+    cover_url: normalizeExternalUrl(storyForm.cover_url || fallbackStory.cover_url || ''),
     status: storyForm.status || fallbackStory.status || 'draft',
     is_published: Boolean(storyForm.is_published ?? fallbackStory.is_published ?? false),
     system_base: storyForm.system_base || fallbackStory.system_base || 'generic',
@@ -134,6 +134,25 @@ function extractStoryPatch(settings = {}, fallbackStory = {}) {
     narrative_rules: storyForm.narrative_rules || fallbackStory.narrative_rules || '',
     tone_style: storyForm.tone_style || fallbackStory.tone_style || ''
   };
+}
+
+function normalizeExternalUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw || raw.toLowerCase().startsWith('prompt de imagem:')) return raw;
+  try {
+    const url = new URL(raw);
+    return ['http:', 'https:'].includes(url.protocol) ? raw : '';
+  } catch {
+    return '';
+  }
+}
+
+function validateGeneratedInput(input = {}) {
+  const text = String(input.guidedDescription || input.premise || input.title || '').toLowerCase();
+  const blocked = ['exploração sexual', 'abuso infantil', 'terrorismo real', 'instrução ilegal'];
+  return blocked.some(term => text.includes(term))
+    ? 'Conteúdo sensível detectado. A IA foi pulada e o fluxo seguiu com fallback editável.'
+    : '';
 }
 
 export default async function handler(req, res) {
@@ -297,14 +316,17 @@ Responda somente JSON:
 
   let rawText = '';
   let parsed = null;
-  try {
-    const generation = await generateWithGemini({
-      prompt: finalPrompt,
-      modelo: prompts[0]?.model_name || 'gemini-2.5-flash'
-    });
-    rawText = extractText(generation.payload);
-    parsed = safeJsonFromText(rawText);
-  } catch {}
+  const validationWarning = validateGeneratedInput(input);
+  if (!validationWarning) {
+    try {
+      const generation = await generateWithGemini({
+        prompt: finalPrompt,
+        modelo: prompts[0]?.model_name || 'gemini-2.5-flash'
+      });
+      rawText = extractText(generation.payload);
+      parsed = safeJsonFromText(rawText);
+    } catch {}
+  }
   const storyForm = parsed?.story || buildFallbackStoryForm(story, input);
   const generatedEnvelope = parsed || buildFallbackGeneratedPayload(storyForm, input);
   const generatedState = buildInitialBuilderFromGeneration(input, generatedEnvelope);
@@ -338,7 +360,7 @@ Responda somente JSON:
     storyForm,
     builderState: generatedState,
     runtime,
-    warning: parsed ? '' : 'A IA falhou ou respondeu parcialmente. O fluxo seguiu com fallback editável.'
+    warning: validationWarning || (parsed ? '' : 'A IA falhou ou respondeu parcialmente. O fluxo seguiu com fallback editável.')
   };
 }
 

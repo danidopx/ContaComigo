@@ -458,6 +458,25 @@ function validateAccountName(name) {
   return '';
 }
 
+async function validateAccountNameWithAi(name) {
+  try {
+    const response = await fetch('/api/ia', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: `Valide se este nome publico de jogador e apropriado. Responda JSON {"ok":true,"reason":""}. Nome: ${name}`,
+        modelo: 'gemini-2.5-flash'
+      })
+    });
+    if (!response.ok) return '';
+    const payload = await response.json().catch(() => null);
+    const text = JSON.stringify(payload || {});
+    return text.includes('"ok":false') ? 'Nome recusado pela validação de IA.' : '';
+  } catch {
+    return '';
+  }
+}
+
 function startSessionFeedPolling(sessionId) {
   stopSessionFeedPolling();
   sessionFeedTimer = setInterval(() => {
@@ -596,6 +615,12 @@ function bindForms() {
     const error = validateAccountName(fullName);
     if (error) {
       status.textContent = error;
+      status.className = 'login-status error';
+      return;
+    }
+    const aiError = await validateAccountNameWithAi(fullName);
+    if (aiError) {
+      status.textContent = aiError;
       status.className = 'login-status error';
       return;
     }
