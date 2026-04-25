@@ -120,5 +120,14 @@ arquivos_afetados:
 - PROJECT_CHECKPOINTS.md
 === END CHECKPOINT ===
 
+=== CHECKPOINT BUILDER_FIX ===
+status: completo
+proximo_passo: validar drag/click no navegador
+arquivos_afetados:
+- public/story-builder.js
+- public/style.css
+- PROJECT_CHECKPOINTS.md
+=== END CHECKPOINT ===
+
 Sequencia pendente:
 - Revisao final: testar fluxo completo em ambiente publicado.

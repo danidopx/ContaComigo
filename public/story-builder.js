@@ -523,6 +523,55 @@ function renderBuilderCanvas() {
     renderDecisionList();
     renderBuilderCanvas();
   }));
+  initCanvasDrag(surface);
+}
+
+function initCanvasDrag(surface) {
+  surface.querySelectorAll('[data-builder-node]').forEach(card => {
+    card.addEventListener('pointerdown', event => {
+      if (event.target.closest('button, input, textarea, select')) return;
+      const node = findNode(card.dataset.builderNode);
+      if (!node) return;
+
+      builderState.selectedNodeId = node.id;
+      hydrateSelectedNodeEditor();
+      renderStructureList();
+      renderDecisionList();
+      card.classList.add('dragging', 'selected');
+      card.setPointerCapture(event.pointerId);
+
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startLeft = node.position?.x || 0;
+      const startTop = node.position?.y || 0;
+      let moved = false;
+
+      const onMove = moveEvent => {
+        const nextX = Math.max(0, startLeft + moveEvent.clientX - startX);
+        const nextY = Math.max(0, startTop + moveEvent.clientY - startY);
+        moved = moved || Math.abs(nextX - startLeft) > 3 || Math.abs(nextY - startTop) > 3;
+        node.position = { x: nextX, y: nextY };
+        card.style.left = `${nextX}px`;
+        card.style.top = `${nextY}px`;
+      };
+
+      const onEnd = () => {
+        card.classList.remove('dragging');
+        card.removeEventListener('pointermove', onMove);
+        card.removeEventListener('pointerup', onEnd);
+        card.removeEventListener('pointercancel', onEnd);
+        if (moved) {
+          renderBuilderCanvas();
+          renderFinalSummary();
+          persistDraft();
+        }
+      };
+
+      card.addEventListener('pointermove', onMove);
+      card.addEventListener('pointerup', onEnd);
+      card.addEventListener('pointercancel', onEnd);
+    });
+  });
 }
 
 function hydrateSelectedNodeEditor() {
