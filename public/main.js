@@ -1,4 +1,4 @@
-import { appState, initPublicConfig } from './config.js';
+import { appState, getSb, initPublicConfig } from './config.js';
 import { initAuth, signInWithGoogle, signOut } from './auth.js';
 import {
   loadStories,
@@ -79,7 +79,7 @@ function updateHeader() {
   const home = document.getElementById('btn-home');
 
   if (appState.user) {
-    chip.textContent = appState.user.user_metadata?.full_name || appState.user.email;
+    chip.textContent = appState.user.profileName || appState.user.user_metadata?.full_name || appState.user.email;
     chip.classList.remove('hidden');
     logout.classList.remove('hidden');
     home.classList.remove('hidden');
@@ -94,6 +94,7 @@ function updateHeader() {
   openAdmin.classList.toggle('hidden', !adminVisible);
   updateAuthScreens();
   updateLandingActions();
+  hydrateAccountForm();
 }
 
 function activateAdminTab(tabName) {
@@ -211,6 +212,7 @@ async function handleAuthChange(user) {
     return;
   }
   updateLoginStatus('', '');
+  await loadAccountProfile();
   await refreshDashboard();
   showScreen('screen-landing');
 }
@@ -430,9 +432,30 @@ async function refreshSessionTools(sessionId) {
 function getCurrentPlayerName() {
   const currentPlayer = appState.currentState?.players?.find(player => player.user_id === appState.user?.id);
   return currentPlayer?.profile?.full_name
+    || appState.user?.profileName
     || appState.user?.user_metadata?.full_name
     || appState.user?.email
     || 'jogador';
+}
+
+async function loadAccountProfile() {
+  if (!appState.user) return;
+  const { data } = await getSb().from('profiles').select('full_name').eq('id', appState.user.id).maybeSingle();
+  appState.user.profileName = data?.full_name || appState.user.user_metadata?.full_name || appState.user.email;
+  hydrateAccountForm();
+}
+
+function hydrateAccountForm() {
+  const input = document.getElementById('account-display-name');
+  if (!input || !appState.user) return;
+  input.value = appState.user.profileName || appState.user.user_metadata?.full_name || appState.user.email || '';
+}
+
+function validateAccountName(name) {
+  const clean = String(name || '').trim();
+  if (clean.length < 2 || clean.length > 40) return 'Use entre 2 e 40 caracteres.';
+  if (!/^[\p{L}\p{N}\s._-]+$/u.test(clean)) return 'Use apenas letras, números, espaço, ponto, hífen ou underline.';
+  return '';
 }
 
 function startSessionFeedPolling(sessionId) {
@@ -565,6 +588,25 @@ function bindForms() {
     await refreshSessionTools(appState.currentSession.id);
   });
 
+  document.getElementById('account-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const input = document.getElementById('account-display-name');
+    const status = document.getElementById('account-status');
+    const fullName = input.value.trim();
+    const error = validateAccountName(fullName);
+    if (error) {
+      status.textContent = error;
+      status.className = 'login-status error';
+      return;
+    }
+    await getSb().from('profiles').upsert({ id: appState.user.id, email: appState.user.email, full_name: fullName }, { onConflict: 'id' });
+    appState.user.profileName = fullName;
+    status.textContent = 'Conta salva.';
+    status.className = 'login-status success';
+    updateHeader();
+    toast('Conta atualizada.');
+  });
+
   initStoryBuilder({
     onLoadStory: async storyId => {
       if (!storyId) return;
@@ -657,7 +699,7 @@ function bindButtons() {
     if (appState.currentSession?.id) showScreen('screen-chapter');
     else showScreen('screen-dashboard');
   });
-  document.getElementById('btn-nav-account')?.addEventListener('click', () => showScreen(appState.user ? 'screen-dashboard' : 'screen-login'));
+  document.getElementById('btn-nav-account')?.addEventListener('click', () => showScreen(appState.user ? 'screen-account' : 'screen-login'));
   document.getElementById('btn-open-dashboard').addEventListener('click', () => showScreen('screen-dashboard'));
   document.getElementById('btn-landing-admin').addEventListener('click', async () => {
     showScreen('screen-admin');
