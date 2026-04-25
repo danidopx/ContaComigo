@@ -508,8 +508,9 @@
                   </article>
                   <article class="stack-item">
                     <h4>Metadata leve</h4>
-                    <input id="builder-media-image" placeholder="Imagem opcional">
-                    <input id="builder-media-music" placeholder="Música opcional">
+                    <input id="builder-media-image" placeholder="Imagem de capa: URL ou prompt IA">
+                    <input id="builder-media-music" placeholder="Som ambiente geral: URL, prompt ou descrição">
+                    <textarea id="builder-media-acts" rows="4" placeholder="Som por ato/capítulo, uma linha por item. Ex: Ato 1|vento baixo e cordas tensas"></textarea>
                   </article>
                   <article class="stack-item">
                     <h4>Controles</h4>
@@ -606,6 +607,10 @@ Restrições e observações:</pre>
                       <label class="field-block">
                         <span>Imagem de capa / prompt</span>
                           <input id="builder-review-cover-url" autocomplete="url" placeholder="Imagem real ou prompt de imagem">
+                      </label>
+                      <label class="field-block">
+                        <span>Som ambiente</span>
+                        <input id="builder-review-ambient-sound" autocomplete="off" placeholder="URL, prompt ou descrição sonora">
                       </label>
                       <div class="two-col">
                         <label class="field-block">

@@ -268,6 +268,8 @@ function hydrateAllBuilderForms() {
   document.getElementById('builder-chat-presets').value = (builderState.payload.chatPresets || []).join('\n');
   document.getElementById('builder-media-image').value = builderState.payload.mediaMetadata.image || '';
   document.getElementById('builder-media-music').value = builderState.payload.mediaMetadata.music || '';
+  document.getElementById('builder-media-acts').value = (builderState.payload.mediaMetadata.acts || []).map(item => `${item.label}|${item.sound}`).join('\n');
+  document.getElementById('builder-review-ambient-sound').value = builderState.payload.mediaMetadata.ambientSound || '';
   hydrateSelectedNodeEditor();
 }
 
@@ -362,7 +364,12 @@ function syncAllStepData() {
   builderState.payload.chatPresets = splitLines(document.getElementById('builder-chat-presets').value || '');
   builderState.payload.mediaMetadata = {
     image: document.getElementById('builder-media-image').value || '',
-    music: document.getElementById('builder-media-music').value || ''
+    music: document.getElementById('builder-media-music').value || '',
+    ambientSound: document.getElementById('builder-review-ambient-sound').value || '',
+    acts: splitLines(document.getElementById('builder-media-acts').value || '').map(line => {
+      const [label, ...soundParts] = line.split('|');
+      return { label: label?.trim() || 'Ato', sound: soundParts.join('|').trim() || '' };
+    }).filter(item => item.sound)
   };
   if (!builderState.payload.storyForm.slug) {
     builderState.payload.storyForm.slug = slugify(builderState.payload.storyForm.title || 'historia-sem-titulo');

@@ -155,6 +155,17 @@ function validateGeneratedInput(input = {}) {
     : '';
 }
 
+function normalizeMediaMetadata(media = {}, storyPatch = {}) {
+  const image = media.image || storyPatch.cover_url || '';
+  return {
+    image,
+    imagePrompt: image && !String(image).startsWith('http') ? String(image) : '',
+    ambientSound: media.ambientSound || media.music || '',
+    music: media.music || '',
+    acts: Array.isArray(media.acts) ? media.acts.filter(item => item?.sound) : []
+  };
+}
+
 export default async function handler(req, res) {
   if (handleOptions(req, res)) return;
 
@@ -235,7 +246,7 @@ async function saveDraft({ storyId, builderState, settings, chatPresets, mediaMe
     builder_settings: settings || story.builder_settings || {},
     builder_runtime: runtime,
     chat_presets: Array.isArray(chatPresets) ? chatPresets : story.chat_presets || [],
-    media_metadata: mediaMetadata || story.media_metadata || {},
+    media_metadata: normalizeMediaMetadata(mediaMetadata || story.media_metadata || {}, storyPatch),
     draft_version: nextDraftVersion,
     builder_checkpoint: 'FASE_3_BACKEND_SAVE'
   }, 'return=minimal');
@@ -350,7 +361,7 @@ Responda somente JSON:
     },
     builder_runtime: runtime,
     chat_presets: Array.isArray(chatPresets) ? chatPresets : story.chat_presets || [],
-    media_metadata: mediaMetadata || story.media_metadata || {},
+    media_metadata: normalizeMediaMetadata(mediaMetadata || story.media_metadata || {}, storyPatch),
     builder_checkpoint: 'FASE_5_IA_BASE'
   }, 'return=minimal');
 
@@ -390,7 +401,7 @@ async function publishBuilder({ storyId, builderState, settings, chatPresets, me
     builder_settings: settings || story.builder_settings || {},
     builder_runtime: runtime,
     chat_presets: Array.isArray(chatPresets) ? chatPresets : story.chat_presets || [],
-    media_metadata: mediaMetadata || story.media_metadata || {},
+    media_metadata: normalizeMediaMetadata(mediaMetadata || story.media_metadata || {}, storyPatch),
     published_version: publishedVersion,
     status: 'published',
     is_published: true,

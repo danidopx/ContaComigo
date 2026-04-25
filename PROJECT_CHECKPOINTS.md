@@ -87,6 +87,17 @@ arquivos_afetados:
 - PROJECT_CHECKPOINTS.md
 === END CHECKPOINT ===
 
+=== CHECKPOINT FASE 10 ===
+status: completo
+proximo_passo: FASE 11 - Tema claro/escuro persistido
+arquivos_afetados:
+- public/index.html
+- public/story-builder.js
+- api/story-builder.js
+- public/cv-builder.js
+- public/style.css
+- PROJECT_CHECKPOINTS.md
+=== END CHECKPOINT ===
+
 Sequencia pendente:
-- FASE 10 - Midia leve: capa e metadados de som/imagem.
 - FASE 11 - Tema: claro/escuro persistido.

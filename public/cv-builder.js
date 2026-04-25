@@ -6,6 +6,7 @@ export function renderStories(container, stories, onCreate) {
     ? '<div class="stack-item">Nenhuma história publicada ainda.</div>'
     : stories.map(story => `
       <article class="story-card">
+        ${story.cover_url && /^https?:\/\//.test(story.cover_url) ? `<img class="story-cover" src="${escapeHtml(story.cover_url)}" alt="">` : ''}
         <p class="eyebrow">${escapeHtml(story.system_base || story.slug || 'historia')}</p>
         <h3>${escapeHtml(story.title)}</h3>
         <p>${escapeHtml(story.summary || 'Sem resumo cadastrado.')}</p>
