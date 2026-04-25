@@ -48,6 +48,8 @@ body {
     radial-gradient(circle at right center, var(--body-glow-b), transparent 24%),
     linear-gradient(180deg, var(--body-top) 0%, var(--bg) 58%, var(--body-bottom) 100%);
   color: var(--text);
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .shell { max-width: 1240px; margin: 0 auto; padding: 24px; }
@@ -70,6 +72,7 @@ h1, h2, h3, p { margin-top: 0; }
   padding-bottom: 8px;
   scroll-snap-type: x mandatory;
   scrollbar-width: thin;
+  max-width: 100%;
 }
 .story-carousel .story-card {
   scroll-snap-align: start;
@@ -259,6 +262,8 @@ textarea { resize: vertical; }
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
   gap: 18px;
+  align-items: start;
+  max-width: 100%;
 }
 .builder-stepper {
   display: grid;
@@ -327,13 +332,14 @@ textarea { resize: vertical; }
   gap: 12px;
 }
 .builder-sidebar {
-  max-height: 78vh;
+  max-height: calc(100vh - 140px);
   overflow: auto;
   padding-right: 4px;
 }
 .builder-main {
   display: grid;
   gap: 18px;
+  min-width: 0;
 }
 .builder-canvas-wrap {
   overflow: auto;
@@ -345,6 +351,7 @@ textarea { resize: vertical; }
     var(--canvas-bg);
   background-size: 32px 32px;
   min-height: 520px;
+  max-width: 100%;
 }
 .builder-canvas {
   position: relative;
@@ -441,4 +448,12 @@ textarea { resize: vertical; }
   .shell { padding: 16px; }
   .hero, .layout-grid, .two-col, .landing-grid, .builder-shell, .builder-editor-grid, .guided-admin-grid, .builder-guided-grid { grid-template-columns: 1fr; }
   .topbar, .section-head, .actions, .topbar-actions { flex-direction: column; align-items: stretch; }
+  .card { border-radius: 16px; padding: 16px; }
+  .btn { min-height: 44px; width: 100%; }
+  .story-carousel { grid-auto-columns: minmax(82vw, 1fr); }
+  .sidebar { position: static; }
+  .builder-sidebar { max-height: none; overflow: visible; padding-right: 0; }
+  .builder-canvas-wrap { min-height: 360px; }
+  .builder-node { width: 200px; }
+  input, textarea, select { min-height: 44px; }
 }

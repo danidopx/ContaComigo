@@ -235,7 +235,15 @@ async function handleAuthChange(user) {
 }
 
 async function loadAdmin() {
-  if (!appState.isAdmin) return;
+  if (!appState.user) {
+    showScreen('screen-login');
+    return false;
+  }
+  if (!appState.isAdmin) {
+    toast('Acesso restrito ao admin.');
+    showScreen('screen-dashboard');
+    return false;
+  }
   setLoading(true, 'Carregando admin...');
   try {
     const [storiesPayload, chaptersPayload, decisionsPayload, decisionOptionsPayload, rulesPayload, sessionsPayload, usersPayload, promptsPayload] = await Promise.all([
@@ -727,11 +735,13 @@ function bindButtons() {
   });
   document.getElementById('btn-nav-master')?.addEventListener('click', () => showScreen('screen-master'));
   document.getElementById('btn-master-builder')?.addEventListener('click', async () => {
+    if (!appState.user) return showScreen('screen-login');
     showScreen('screen-admin');
     activateAdminTab('builder');
     await loadAdmin();
   });
   document.getElementById('btn-master-manual')?.addEventListener('click', async () => {
+    if (!appState.user) return showScreen('screen-login');
     showScreen('screen-admin');
     activateAdminTab('stories');
     await loadAdmin();
@@ -765,6 +775,8 @@ function bindButtons() {
   document.getElementById('btn-logout').addEventListener('click', async () => {
     stopSessionFeedPolling();
     await signOut();
+    updateHeader();
+    showScreen('screen-landing');
     toast('Sessão encerrada.');
   });
   document.getElementById('btn-admin').addEventListener('click', async () => {

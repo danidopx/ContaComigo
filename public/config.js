@@ -39,7 +39,14 @@ export async function initPublicConfig() {
   if (!supabaseLib?.createClient) throw new Error('Biblioteca Supabase indisponível no frontend.');
 
   appState.publicConfig = config;
-  appState.sb = supabaseLib.createClient(config.supabaseUrl, config.supabaseAnonKey);
+  appState.sb = supabaseLib.createClient(config.supabaseUrl, config.supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce'
+    }
+  });
   return config;
 }
 

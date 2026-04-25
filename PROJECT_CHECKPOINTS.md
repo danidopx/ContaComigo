@@ -109,5 +109,16 @@ arquivos_afetados:
 - PROJECT_CHECKPOINTS.md
 === END CHECKPOINT ===
 
+=== CHECKPOINT AUTH_LAYOUT_MOBILE ===
+status: completo
+proximo_passo: validar login Google no Render
+arquivos_afetados:
+- public/config.js
+- public/auth.js
+- public/main.js
+- public/style.css
+- PROJECT_CHECKPOINTS.md
+=== END CHECKPOINT ===
+
 Sequencia pendente:
 - Revisao final: testar fluxo completo em ambiente publicado.
